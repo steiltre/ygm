@@ -414,6 +414,12 @@ class disjoint_set_impl {
       }
 
       m_comm.barrier();
+
+      world.cout0("Total items: ", size());
+      world.cout0("Max rank items: ",
+                  m_comm.all_reduce_max(m_local_item_parent_map.size()));
+      world.cout0("Min rank items: ",
+                  m_comm.all_reduce_min(m_local_item_parent_map.size()));
     }
   }
 
