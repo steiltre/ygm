@@ -234,11 +234,12 @@ class disjoint_set_impl {
         // Note: other_item needs rank info for comparison with my_item's
         // parent. All others need rank and item to determine if other_item
         // has been visited/initialized.
-        ++(p_dset->simul_parent_walk_functor_count);
-
         const value_type &my_item   = my_item_info.first;
         const rank_type  &my_rank   = my_item_info.second.get_rank();
         const value_type &my_parent = my_item_info.second.get_parent();
+
+        ++(p_dset->simul_parent_walk_functor_count);
+        ++(p_dset->walk_visit_ranks[my_rank]);
 
         // Path splitting
         if (my_child != my_item) {
@@ -571,9 +572,23 @@ class disjoint_set_impl {
     resolve_merge_lambda_count      = 0;
     update_parent_lambda_count      = 0;
     roots_visited                   = 0;
+
+    walk_visit_ranks.clear();
+    walk_visit_ranks.resize(16);
   }
 
   void print_counters() {
+    std::vector<int64_t> walk_visit_sum(16);
+    std::vector<int64_t> walk_visit_min(16);
+    std::vector<int64_t> walk_visit_max(16);
+
+    MPI_Allreduce(walk_visit_ranks.data(), walk_visit_sum.data(), 16,
+                  MPI_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
+    MPI_Allreduce(walk_visit_ranks.data(), walk_visit_min.data(), 16,
+                  MPI_LONG_LONG, MPI_MIN, MPI_COMM_WORLD);
+    MPI_Allreduce(walk_visit_ranks.data(), walk_visit_max.data(), 16,
+                  MPI_LONG_LONG, MPI_MAX, MPI_COMM_WORLD);
+
     m_comm.cout0("----Disjoint set counters----",
                  "\nsimul_parent_walk_functor_count:\n\tSum: ",
                  ygm::sum(simul_parent_walk_functor_count, m_comm),
@@ -590,6 +605,13 @@ class disjoint_set_impl {
                  ygm::sum(update_parent_lambda_count, m_comm),
                  "\n\tMin: ", ygm::min(update_parent_lambda_count, m_comm),
                  "\n\tMax: ", ygm::max(update_parent_lambda_count, m_comm));
+
+    world.cout0("\nWalk visit ranks:\n\t");
+    for (int i = 0; i < 16; ++i) {
+      world.cout0() << "\t(" << i << ", " << walk_visit_sum[i] << ", "
+                    << walk_visit_min[i] << ", " << walk_visit_max[i] << ")";
+    }
+    world.cout0();
   }
 
  protected:
@@ -599,9 +621,10 @@ class disjoint_set_impl {
   self_ygm_ptr_type pthis;
   parent_map_type   m_local_item_parent_map;
 
-  int64_t simul_parent_walk_functor_count;
-  int64_t resolve_merge_lambda_count;
-  int64_t update_parent_lambda_count;
-  int64_t roots_visited;
+  int64_t              simul_parent_walk_functor_count;
+  int64_t              resolve_merge_lambda_count;
+  int64_t              update_parent_lambda_count;
+  int64_t              roots_visited;
+  std::vector<int64_t> walk_visit_ranks(16);
 };
 }  // namespace ygm::container::detail
