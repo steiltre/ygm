@@ -283,7 +283,7 @@ class disjoint_set_impl {
                     "with (const value_type &, const value_type &) signature");
               }
 
-              return;
+              // return;
 
               p_dset->async_visit(other_parent, resolve_merge_lambda, my_item,
                                   my_rank);
