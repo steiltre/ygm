@@ -58,6 +58,7 @@ class disjoint_set_impl {
 
   disjoint_set_impl(ygm::comm &comm) : m_comm(comm), pthis(this) {
     pthis.check(m_comm);
+    clear_counters();
   }
 
   ~disjoint_set_impl() { m_comm.barrier(); }
@@ -239,7 +240,7 @@ class disjoint_set_impl {
         const value_type &my_parent = my_item_info.second.get_parent();
 
         ++(p_dset->simul_parent_walk_functor_count);
-        ++(p_dset->walk_visit_ranks[my_rank]);
+        ++(p_dset->walk_visit_ranks)[my_rank];
 
         // Path splitting
         if (my_child != my_item) {
@@ -625,6 +626,6 @@ class disjoint_set_impl {
   int64_t              resolve_merge_lambda_count;
   int64_t              update_parent_lambda_count;
   int64_t              roots_visited;
-  std::vector<int64_t> walk_visit_ranks(16);
+  std::vector<int64_t> walk_visit_ranks;
 };
 }  // namespace ygm::container::detail
