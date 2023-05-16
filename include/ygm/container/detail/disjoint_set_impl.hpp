@@ -607,12 +607,12 @@ class disjoint_set_impl {
                  "\n\tMin: ", ygm::min(update_parent_lambda_count, m_comm),
                  "\n\tMax: ", ygm::max(update_parent_lambda_count, m_comm));
 
-    world.cout0("\nWalk visit ranks:\n\t");
+    m_comm.cout0("\nWalk visit ranks:\n\t");
     for (int i = 0; i < 16; ++i) {
-      world.cout0() << "\t(" << i << ", " << walk_visit_sum[i] << ", "
-                    << walk_visit_min[i] << ", " << walk_visit_max[i] << ")";
+      m_comm.cout0() << "\t(" << i << ", " << walk_visit_sum[i] << ", "
+                     << walk_visit_min[i] << ", " << walk_visit_max[i] << ")";
     }
-    world.cout0();
+    m_comm.cout0();
   }
 
  protected:
