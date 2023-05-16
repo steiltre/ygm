@@ -6,6 +6,7 @@
 #pragma once
 #include <unordered_map>
 #include <vector>
+#include <ygm/collective.hpp>
 #include <ygm/comm.hpp>
 #include <ygm/container/detail/hash_partitioner.hpp>
 #include <ygm/detail/ygm_ptr.hpp>
@@ -188,9 +189,10 @@ class disjoint_set_impl {
   template <typename Function, typename... FunctionArgs>
   void async_union_and_execute(const value_type &a, const value_type &b,
                                Function fn, const FunctionArgs &...args) {
-    static auto update_parent_lambda = [](auto             &item_info,
+    static auto update_parent_lambda = [](auto p_dset, auto &item_info,
                                           const value_type &new_parent) {
       item_info.second.set_parent(new_parent);
+      ++(p_dset->update_parent_lambda_count);
     };
 
     static auto resolve_merge_lambda = [](auto p_dset, auto &item_info,
@@ -216,6 +218,7 @@ class disjoint_set_impl {
               my_parent);
         }
       }
+      ++(p_dset->resolve_merge_lambda_count);
     };
 
     // Walking up parent trees can be expressed as a recursive operation
@@ -230,6 +233,7 @@ class disjoint_set_impl {
         // Note: other_item needs rank info for comparison with my_item's
         // parent. All others need rank and item to determine if other_item
         // has been visited/initialized.
+        ++(p_dset->simul_parent_walk_functor_count);
 
         const value_type &my_item   = my_item_info.first;
         const rank_type  &my_rank   = my_item_info.second.get_rank();
@@ -559,11 +563,37 @@ class disjoint_set_impl {
 
   ygm::comm &comm() { return m_comm; }
 
+  void clear_counters() {
+    simul_parent_walk_functor_count = 0;
+    resolve_merge_lambda_count      = 0;
+    update_parent_lambda_count      = 0;
+  }
+
+  void print_counters() {
+    m_comm.cout0("----Disjoint set counters----",
+                 "\nsimul_parent_walk_functor_count:\n\tSum: ",
+                 ygm::sum(simul_parent_walk_functor_count, m_comm),
+                 "\n\tMin: ", ygm::min(simul_parent_walk_functor_count, m_comm),
+                 "\n\tMax: ", ygm::max(simul_parent_walk_functor_count, m_comm),
+                 "\nresolve_merge_lambda_count:\n\tSum: ",
+                 ygm::sum(resolve_merge_lambda_count, m_comm),
+                 "\n\tMin: ", ygm::min(resolve_merge_lambda_count, m_comm),
+                 "\n\tMax: ", ygm::max(resolve_merge_lambda_count, m_comm),
+                 "\nupdate_parent_lambda_count:\n\tSum: ",
+                 ygm::sum(update_parent_lambda_count, m_comm),
+                 "\n\tMin: ", ygm::min(update_parent_lambda_count, m_comm),
+                 "\n\tMax: ", ygm::max(update_parent_lambda_count, m_comm));
+  }
+
  protected:
   disjoint_set_impl() = delete;
 
   ygm::comm         m_comm;
   self_ygm_ptr_type pthis;
   parent_map_type   m_local_item_parent_map;
+
+  int64_t simul_parent_walk_functor_count;
+  int64_t resolve_merge_lambda_count;
+  int64_t update_parent_lambda_count;
 };
 }  // namespace ygm::container::detail
