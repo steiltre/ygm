@@ -49,6 +49,9 @@ class disjoint_set {
     return m_impl.get_ygm_ptr();
   }
 
+  void print_counters() { m_impl.print_counters(); }
+  void clear_counters() { m_impl.clear_counters(); }
+
  private:
   impl_type m_impl;
 };
