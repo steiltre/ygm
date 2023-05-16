@@ -208,6 +208,7 @@ class disjoint_set_impl {
       } else {
         ASSERT_RELEASE(my_rank == merging_rank);
         if (my_parent == my_item) {  // Has not found new parent
+          ++(p_dset->roots_visited);
           item_info.second.increase_rank(merging_rank + 1);
         } else {  // Tell merging item about new parent
           p_dset->async_visit(
@@ -254,6 +255,7 @@ class disjoint_set_impl {
                               orig_b, args...);
         } else if (my_rank == other_rank) {
           if (my_parent == my_item) {  // At a root
+            ++(p_dset->roots_visited);
 
             if (my_item < other_parent) {  // Need to break ties in rank before
                                            // merging to avoid cycles of merges
@@ -301,6 +303,7 @@ class disjoint_set_impl {
           }
         } else {                       // Current path has lower rank
           if (my_parent == my_item) {  // At a root
+            ++(p_dset->roots_visited);
             my_item_info.second.set_parent(
                 other_parent);  // Safe to attach to other path
 
@@ -567,6 +570,7 @@ class disjoint_set_impl {
     simul_parent_walk_functor_count = 0;
     resolve_merge_lambda_count      = 0;
     update_parent_lambda_count      = 0;
+    roots_visited                   = 0;
   }
 
   void print_counters() {
@@ -575,6 +579,9 @@ class disjoint_set_impl {
                  ygm::sum(simul_parent_walk_functor_count, m_comm),
                  "\n\tMin: ", ygm::min(simul_parent_walk_functor_count, m_comm),
                  "\n\tMax: ", ygm::max(simul_parent_walk_functor_count, m_comm),
+                 "\nroots_visited:\n\tSum: ", ygm::sum(roots_visited, m_comm),
+                 "\n\tMin: ", ygm::min(roots_visited, m_comm),
+                 "\n\tMax: ", ygm::max(roots_visited, m_comm),
                  "\nresolve_merge_lambda_count:\n\tSum: ",
                  ygm::sum(resolve_merge_lambda_count, m_comm),
                  "\n\tMin: ", ygm::min(resolve_merge_lambda_count, m_comm),
@@ -595,5 +602,6 @@ class disjoint_set_impl {
   int64_t simul_parent_walk_functor_count;
   int64_t resolve_merge_lambda_count;
   int64_t update_parent_lambda_count;
+  int64_t roots_visited;
 };
 }  // namespace ygm::container::detail
