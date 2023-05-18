@@ -251,14 +251,19 @@ class disjoint_set_impl {
           return;
         }
 
+        ++(p_dset->walk_visit_ranks)[my_rank];
+
         if (my_rank > other_rank) {  // Other path has lower rank
+          if (my_parent == my_item) {
+            ++(p_dset->roots_visited);
+            ++(p_dset->walk_visit_ranks)[my_rank];
+          }
           p_dset->async_visit(other_parent, simul_parent_walk_functor(),
                               other_item, my_parent, my_item, my_rank, orig_a,
                               orig_b, args...);
         } else if (my_rank == other_rank) {
           if (my_parent == my_item) {  // At a root
             ++(p_dset->roots_visited);
-            ++(p_dset->walk_visit_ranks)[my_rank];
 
             if (my_item < other_parent) {  // Need to break ties in rank before
                                            // merging to avoid cycles of merges
