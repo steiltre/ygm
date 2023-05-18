@@ -287,23 +287,14 @@ class disjoint_set_impl {
         rank_type  my_rank   = my_item_info.second.get_rank();
         value_type my_parent = my_item_info.second.get_parent();
 
-        // p_dset->m_comm.cout() << "Visiting (" << my_item << ", " << my_rank
-        //<< ", " << my_parent << ")" << std::endl;
         // auto cached_info = walk_cache(
         std::tie(my_item, my_rank, my_parent) =
             p_dset->walk_cache(my_item, my_rank, my_parent);
         std::tie(other_item, other_rank, other_parent) =
             p_dset->walk_cache(other_item, other_rank, other_parent);
 
-        // p_dset->m_comm.cout()
-        //<< "Visiting cached (" << my_item << ", " << my_rank << ", "
-        //<< my_parent << ")" << std::endl;
-        // p_dset->m_comm.cout()
-        //<< "Other cached (" << other_item << ", " << other_rank << ", "
-        //<< other_parent << ")" << std::endl;
-
         ++(p_dset->simul_parent_walk_functor_count);
-        //++(p_dset->walk_visit_ranks)[my_rank];
+        ++(p_dset->walk_visit_ranks)[my_rank];
 
         // Path splitting
         if (my_child != my_item) {
@@ -318,10 +309,10 @@ class disjoint_set_impl {
         ++(p_dset->walk_visit_ranks)[my_rank];
 
         if (my_rank > other_rank) {  // Other path has lower rank
-          if (my_parent == my_item) {
-            ++(p_dset->roots_visited);
-            ++(p_dset->walk_visit_ranks)[my_rank];
-          }
+          // if (my_parent == my_item) {
+          //++(p_dset->roots_visited);
+          //++(p_dset->walk_visit_ranks)[my_rank];
+          //}
           p_dset->async_visit(other_parent, simul_parent_walk_functor(),
                               other_item, my_parent, my_item, my_rank, orig_a,
                               orig_b, args...);
