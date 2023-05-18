@@ -696,8 +696,8 @@ class disjoint_set_impl {
 
     m_comm.cout0("----Disjoint set counters----", "\nMax rank:\t", max_rank(),
                  "\nRank 7s:\t", count_rank(7),
-                 "\nMax cached ranks: min: ", min_max_cached_rank,
-                 "\t max: ", max_max_cached_rank,
+                 "\nMax cached ranks: min: ", min_max_cached_rank(),
+                 "\t max: ", max_max_cached_rank(),
                  "\nsimul_parent_walk_functor_count:\n\tSum: ",
                  ygm::sum(simul_parent_walk_functor_count, m_comm),
                  "\n\tMin: ", ygm::min(simul_parent_walk_functor_count, m_comm),
