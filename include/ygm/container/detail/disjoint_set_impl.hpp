@@ -301,7 +301,7 @@ class disjoint_set_impl {
             p_dset->walk_cache(other_item, other_rank, other_parent);
 
         if (not rank_7 && my_rank == 7) {
-          ++cache_rank_7;
+          ++(p_dset->cache_rank_7);
         }
 
         // Path splitting
