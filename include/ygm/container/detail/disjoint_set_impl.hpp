@@ -646,6 +646,30 @@ class disjoint_set_impl {
     return ygm::sum(count, m_comm);
   }
 
+  rank_type min_max_cached_rank() {
+    rank_type local_max = 0;
+
+    for (auto &c : m_cache.m_cache) {
+      if (c.occupied) {
+        local_max = std::max<rank_type>(c.item_info.get_rank(), local_max);
+      }
+    }
+
+    return ygm::min(local_max, m_comm);
+  }
+
+  rank_type max_max_cached_rank() {
+    rank_type local_max = 0;
+
+    for (auto &c : m_cache.m_cache) {
+      if (c.occupied) {
+        local_max = std::max<rank_type>(c.item_info.get_rank(), local_max);
+      }
+    }
+
+    return ygm::max(local_max, m_comm);
+  }
+
   ygm::comm &comm() { return m_comm; }
 
   void clear_counters() {
@@ -672,6 +696,8 @@ class disjoint_set_impl {
 
     m_comm.cout0("----Disjoint set counters----", "\nMax rank:\t", max_rank(),
                  "\nRank 7s:\t", count_rank(7),
+                 "\nMax cached ranks: min: ", min_max_cached_rank,
+                 "\t max: ", max_max_cached_rank,
                  "\nsimul_parent_walk_functor_count:\n\tSum: ",
                  ygm::sum(simul_parent_walk_functor_count, m_comm),
                  "\n\tMin: ", ygm::min(simul_parent_walk_functor_count, m_comm),
