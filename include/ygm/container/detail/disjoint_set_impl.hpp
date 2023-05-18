@@ -578,17 +578,6 @@ class disjoint_set_impl {
     walk_visit_ranks.resize(16);
   }
 
-  rank_type max_rank() {
-    rank_type local_max_rank = 0;
-
-    for (const auto &item_info_pair : m_local_item_parent_map) {
-      local_max_rank =
-          std::min<rank_type>(item_info_pair.second.get_rank(), local_max_rank);
-    }
-
-    return ygm::max(local_max_rank, m_comm);
-  }
-
   void print_counters() {
     std::vector<int64_t> walk_visit_sum(16);
     std::vector<int64_t> walk_visit_min(16);
