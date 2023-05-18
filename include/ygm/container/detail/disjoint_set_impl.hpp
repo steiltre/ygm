@@ -287,6 +287,8 @@ class disjoint_set_impl {
         rank_type  my_rank   = my_item_info.second.get_rank();
         value_type my_parent = my_item_info.second.get_parent();
 
+        bool rank_7 = (my_rank == 7);
+
         ++(p_dset->simul_parent_walk_functor_count);
         ++(p_dset->walk_visit_ranks)[my_rank];
         if (my_parent == my_item) {
@@ -297,6 +299,10 @@ class disjoint_set_impl {
             p_dset->walk_cache(my_item, my_rank, my_parent);
         std::tie(other_item, other_rank, other_parent) =
             p_dset->walk_cache(other_item, other_rank, other_parent);
+
+        if (not rank_7 && my_rank == 7) {
+          ++cache_rank_7;
+        }
 
         // Path splitting
         if (my_child != my_item) {
@@ -681,25 +687,29 @@ class disjoint_set_impl {
     MPI_Allreduce(walk_visit_ranks.data(), walk_visit_max.data(), 16,
                   MPI_LONG_LONG, MPI_MAX, MPI_COMM_WORLD);
 
-    m_comm.cout0("----Disjoint set counters----", "\nMax rank:\t", max_rank(),
-                 "\nRank 7s:\t", count_rank(7),
-                 "\nMax cached ranks: min: ", min_max_cached_rank(),
-                 "\t max: ", max_max_cached_rank(),
-                 "\nsimul_parent_walk_functor_count:\n\tSum: ",
-                 ygm::sum(simul_parent_walk_functor_count, m_comm),
-                 "\n\tMin: ", ygm::min(simul_parent_walk_functor_count, m_comm),
-                 "\n\tMax: ", ygm::max(simul_parent_walk_functor_count, m_comm),
-                 "\nroots_visited:\n\tSum: ", ygm::sum(roots_visited, m_comm),
-                 "\n\tMin: ", ygm::min(roots_visited, m_comm),
-                 "\n\tMax: ", ygm::max(roots_visited, m_comm),
-                 "\nresolve_merge_lambda_count:\n\tSum: ",
-                 ygm::sum(resolve_merge_lambda_count, m_comm),
-                 "\n\tMin: ", ygm::min(resolve_merge_lambda_count, m_comm),
-                 "\n\tMax: ", ygm::max(resolve_merge_lambda_count, m_comm),
-                 "\nupdate_parent_lambda_count:\n\tSum: ",
-                 ygm::sum(update_parent_lambda_count, m_comm),
-                 "\n\tMin: ", ygm::min(update_parent_lambda_count, m_comm),
-                 "\n\tMax: ", ygm::max(update_parent_lambda_count, m_comm));
+    m_comm.cout0(
+        "----Disjoint set counters----", "\nMax rank:\t", max_rank(),
+        "\nRank 7s:\t", count_rank(7),
+        "\nCache rank 7 visits:\n\tSum: ", ygm::sum(cache_rank_7, m_comm),
+        "\n\tMin: ", ygm::min(cache_rank_7),
+        "\n\tMax: ", ygm::max(cache_rank_7),
+        "\nMax cached ranks: min: ", min_max_cached_rank(),
+        "\t max: ", max_max_cached_rank(),
+        "\nsimul_parent_walk_functor_count:\n\tSum: ",
+        ygm::sum(simul_parent_walk_functor_count, m_comm),
+        "\n\tMin: ", ygm::min(simul_parent_walk_functor_count, m_comm),
+        "\n\tMax: ", ygm::max(simul_parent_walk_functor_count, m_comm),
+        "\nroots_visited:\n\tSum: ", ygm::sum(roots_visited, m_comm),
+        "\n\tMin: ", ygm::min(roots_visited, m_comm),
+        "\n\tMax: ", ygm::max(roots_visited, m_comm),
+        "\nresolve_merge_lambda_count:\n\tSum: ",
+        ygm::sum(resolve_merge_lambda_count, m_comm),
+        "\n\tMin: ", ygm::min(resolve_merge_lambda_count, m_comm),
+        "\n\tMax: ", ygm::max(resolve_merge_lambda_count, m_comm),
+        "\nupdate_parent_lambda_count:\n\tSum: ",
+        ygm::sum(update_parent_lambda_count, m_comm),
+        "\n\tMin: ", ygm::min(update_parent_lambda_count, m_comm),
+        "\n\tMax: ", ygm::max(update_parent_lambda_count, m_comm));
 
     m_comm.cout0() << "\nWalk visit ranks:\n\t\t";
     for (int i = 0; i < 16; ++i) {
@@ -745,5 +755,6 @@ class disjoint_set_impl {
   int64_t              update_parent_lambda_count;
   int64_t              roots_visited;
   std::vector<int64_t> walk_visit_ranks;
+  int64_t              cache_rank_7;
 };
 }  // namespace ygm::container::detail
