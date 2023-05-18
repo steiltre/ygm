@@ -572,6 +572,16 @@ class disjoint_set_impl {
     return m_comm.all_reduce_max(local_max);
   }
 
+  size_t count_rank(const rank_type r) {
+    size_t count = 0;
+
+    for (const auto &local_item : m_local_item_parent_map) {
+      count += (local_item.second.get_rank() == r);
+    }
+
+    return ygm::sum(count, m_comm);
+  }
+
   ygm::comm &comm() { return m_comm; }
 
   void clear_counters() {
@@ -597,6 +607,7 @@ class disjoint_set_impl {
                   MPI_LONG_LONG, MPI_MAX, MPI_COMM_WORLD);
 
     m_comm.cout0("----Disjoint set counters----", "\nMax rank:\t", max_rank(),
+                 "\nRank 7s:\t", count_rank(7),
                  "\nsimul_parent_walk_functor_count:\n\tSum: ",
                  ygm::sum(simul_parent_walk_functor_count, m_comm),
                  "\n\tMin: ", ygm::min(simul_parent_walk_functor_count, m_comm),
