@@ -287,7 +287,10 @@ class disjoint_set_impl {
         rank_type  my_rank   = my_item_info.second.get_rank();
         value_type my_parent = my_item_info.second.get_parent();
 
-        // auto cached_info = walk_cache(
+        if (my_parent == my_item) {
+          ++(p_dset->roots_visited);
+        }
+
         std::tie(my_item, my_rank, my_parent) =
             p_dset->walk_cache(my_item, my_rank, my_parent);
         std::tie(other_item, other_rank, other_parent) =
@@ -309,16 +312,11 @@ class disjoint_set_impl {
         ++(p_dset->walk_visit_ranks)[my_rank];
 
         if (my_rank > other_rank) {  // Other path has lower rank
-          if (my_parent == my_item) {
-            ++(p_dset->roots_visited);
-            //++(p_dset->walk_visit_ranks)[my_rank];
-          }
           p_dset->async_visit(other_parent, simul_parent_walk_functor(),
                               other_item, my_parent, my_item, my_rank, orig_a,
                               orig_b, args...);
         } else if (my_rank == other_rank) {
           if (my_parent == my_item) {  // At a root
-            ++(p_dset->roots_visited);
 
             if (my_item < other_parent) {  // Need to break ties in rank before
                                            // merging to avoid cycles of merges
@@ -366,7 +364,6 @@ class disjoint_set_impl {
           }
         } else {                       // Current path has lower rank
           if (my_parent == my_item) {  // At a root
-            ++(p_dset->roots_visited);
             my_item_info.second.set_parent(
                 other_parent);  // Safe to attach to other path
 
