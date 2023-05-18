@@ -95,7 +95,7 @@ class disjoint_set_impl {
       return m_cache[index];
     }
 
-   private:
+    // private:
     size_t                   m_cache_size;
     std::vector<cache_entry> m_cache;
   };
