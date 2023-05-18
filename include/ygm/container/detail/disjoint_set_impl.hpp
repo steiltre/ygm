@@ -670,6 +670,7 @@ class disjoint_set_impl {
     resolve_merge_lambda_count      = 0;
     update_parent_lambda_count      = 0;
     roots_visited                   = 0;
+    cache_rank_7                    = 0;
 
     walk_visit_ranks.clear();
     walk_visit_ranks.resize(16);
@@ -691,8 +692,8 @@ class disjoint_set_impl {
         "----Disjoint set counters----", "\nMax rank:\t", max_rank(),
         "\nRank 7s:\t", count_rank(7),
         "\nCache rank 7 visits:\n\tSum: ", ygm::sum(cache_rank_7, m_comm),
-        "\n\tMin: ", ygm::min(cache_rank_7),
-        "\n\tMax: ", ygm::max(cache_rank_7),
+        "\n\tMin: ", ygm::min(cache_rank_7, m_comm),
+        "\n\tMax: ", ygm::max(cache_rank_7, m_comm),
         "\nMax cached ranks: min: ", min_max_cached_rank(),
         "\t max: ", max_max_cached_rank(),
         "\nsimul_parent_walk_functor_count:\n\tSum: ",
