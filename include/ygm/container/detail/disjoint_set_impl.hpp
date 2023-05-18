@@ -56,7 +56,52 @@ class disjoint_set_impl {
     value_type m_parent;
   };
 
-  disjoint_set_impl(ygm::comm &comm) : m_comm(comm), pthis(this) {
+  class hash_cache {
+   public:
+    class cache_entry {
+     public:
+      cache_entry() : occupied(false) {}
+
+      cache_entry(const value_type &_item, const rank_parent_t &_item_info)
+          : item(_item), item_info(_item_info) {}
+
+      bool          occupied = false;
+      value_type    item;
+      rank_parent_t item_info;
+    };
+
+    hash_cache(const size_t cache_size)
+        : m_cache_size(cache_size), m_cache(cache_size) {}
+
+    void add_cache_entry(const value_type    &item,
+                         const rank_parent_t &item_info) {
+      size_t index = std::hash<value_type>()(item) % m_cache_size;
+
+      auto &current_entry = m_cache[index];
+
+      // Only replace cached value if current slot is empty or if new entry's
+      // rank is higher
+      if (current_entry.occupied == false ||
+          item_info.get_rank() >= current_entry.item_info.get_rank()) {
+        current_entry.occupied  = true;
+        current_entry.item      = item;
+        current_entry.item_info = item_info;
+      }
+    }
+
+    const cache_entry &get_cache_entry(const value_type &item) {
+      size_t index = std::hash<value_type>()(item) % m_cache_size;
+
+      return m_cache[index];
+    }
+
+   private:
+    size_t                   m_cache_size;
+    std::vector<cache_entry> m_cache;
+  };
+
+  disjoint_set_impl(ygm::comm &comm)
+      : m_comm(comm), pthis(this), m_cache(1024) {
     pthis.check(m_comm);
     clear_counters();
   }
@@ -190,11 +235,15 @@ class disjoint_set_impl {
   template <typename Function, typename... FunctionArgs>
   void async_union_and_execute(const value_type &a, const value_type &b,
                                Function fn, const FunctionArgs &...args) {
-    static auto update_parent_lambda = [](auto p_dset, auto &item_info,
-                                          const value_type &new_parent) {
-      item_info.second.set_parent(new_parent);
-      ++(p_dset->update_parent_lambda_count);
-    };
+    static auto update_parent_and_cache_lambda =
+        [](auto p_dset, auto &item_info, const value_type &new_parent,
+           const rank_type &new_rank) {
+          p_dset->m_cache.add_cache_entry(item_info.second.get_parent(),
+                                          rank_parent_t(new_rank, new_parent));
+
+          item_info.second.set_parent(new_parent);
+          ++(p_dset->update_parent_lambda_count);
+        };
 
     static auto resolve_merge_lambda = [](auto p_dset, auto &item_info,
                                           const value_type &merging_item,
@@ -227,24 +276,30 @@ class disjoint_set_impl {
     struct simul_parent_walk_functor {
       void operator()(self_ygm_ptr_type                           p_dset,
                       std::pair<const value_type, rank_parent_t> &my_item_info,
-                      const value_type                           &my_child,
-                      const value_type                           &other_parent,
-                      const value_type &other_item, const rank_type other_rank,
+                      const value_type &my_child, value_type other_parent,
+                      value_type other_item, rank_type other_rank,
                       const value_type &orig_a, const value_type &orig_b,
                       const FunctionArgs &...args) {
         // Note: other_item needs rank info for comparison with my_item's
         // parent. All others need rank and item to determine if other_item
         // has been visited/initialized.
-        const value_type &my_item   = my_item_info.first;
-        const rank_type  &my_rank   = my_item_info.second.get_rank();
-        const value_type &my_parent = my_item_info.second.get_parent();
+        value_type my_item   = my_item_info.first;
+        rank_type  my_rank   = my_item_info.second.get_rank();
+        value_type my_parent = my_item_info.second.get_parent();
+
+        // auto cached_info = walk_cache(
+        std::tie(my_item, my_rank, my_parent) =
+            p_dset->walk_cache(my_item, my_rank, my_parent);
+        std::tie(other_item, other_rank, other_parent) =
+            p_dset->walk_cache(other_item, other_rank, other_parent);
 
         ++(p_dset->simul_parent_walk_functor_count);
         //++(p_dset->walk_visit_ranks)[my_rank];
 
         // Path splitting
         if (my_child != my_item) {
-          p_dset->async_visit(my_child, update_parent_lambda, my_parent);
+          p_dset->async_visit(my_child, update_parent_and_cache_lambda,
+                              my_parent, my_rank);
         }
 
         if (my_parent == other_parent || my_parent == other_item) {
@@ -632,12 +687,35 @@ class disjoint_set_impl {
     m_comm.cout0();
   }
 
+ private:
+  const std::tuple<value_type, rank_type, value_type> walk_cache(
+      const value_type &item, const rank_type &r, const value_type &parent) {
+    const value_type                       *curr_item = &item;
+    typename hash_cache::cache_entry        tmp_cache_entry(item,
+                                                            rank_parent_t(r, parent));
+    const typename hash_cache::cache_entry *curr_cache_entry = &tmp_cache_entry;
+    const typename hash_cache::cache_entry *next_cache_entry =
+        &m_cache.get_cache_entry(item);
+
+    while (*curr_item == next_cache_entry->item && next_cache_entry->occupied) {
+      curr_cache_entry = next_cache_entry;
+      curr_item        = &curr_cache_entry->item;
+      next_cache_entry = &m_cache.get_cache_entry(*curr_item);
+    }
+
+    return std::make_tuple(curr_cache_entry->item,
+                           curr_cache_entry->item_info.get_rank(),
+                           curr_cache_entry->item_info.get_parent());
+  }
+
  protected:
   disjoint_set_impl() = delete;
 
   ygm::comm         m_comm;
   self_ygm_ptr_type pthis;
   parent_map_type   m_local_item_parent_map;
+
+  hash_cache m_cache;
 
   int64_t              simul_parent_walk_functor_count;
   int64_t              resolve_merge_lambda_count;
