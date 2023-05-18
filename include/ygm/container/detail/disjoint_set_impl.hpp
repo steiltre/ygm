@@ -240,7 +240,7 @@ class disjoint_set_impl {
         const value_type &my_parent = my_item_info.second.get_parent();
 
         ++(p_dset->simul_parent_walk_functor_count);
-        ++(p_dset->walk_visit_ranks)[my_rank];
+        //++(p_dset->walk_visit_ranks)[my_rank];
 
         // Path splitting
         if (my_child != my_item) {
@@ -258,6 +258,7 @@ class disjoint_set_impl {
         } else if (my_rank == other_rank) {
           if (my_parent == my_item) {  // At a root
             ++(p_dset->roots_visited);
+            ++(p_dset->walk_visit_ranks)[my_rank];
 
             if (my_item < other_parent) {  // Need to break ties in rank before
                                            // merging to avoid cycles of merges
