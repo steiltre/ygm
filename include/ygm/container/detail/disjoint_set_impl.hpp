@@ -601,7 +601,7 @@ class disjoint_set_impl {
     MPI_Allreduce(walk_visit_ranks.data(), walk_visit_max.data(), 16,
                   MPI_LONG_LONG, MPI_MAX, MPI_COMM_WORLD);
 
-    m_comm.cout0("----Disjoint set counters----",
+    m_comm.cout0("----Disjoint set counters----", "\nMax rank:\t", max_rank(),
                  "\nsimul_parent_walk_functor_count:\n\tSum: ",
                  ygm::sum(simul_parent_walk_functor_count, m_comm),
                  "\n\tMin: ", ygm::min(simul_parent_walk_functor_count, m_comm),
