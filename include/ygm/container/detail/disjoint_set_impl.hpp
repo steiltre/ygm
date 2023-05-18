@@ -578,7 +578,7 @@ class disjoint_set_impl {
     walk_visit_ranks.resize(16);
   }
 
-  void max_rank() {
+  rank_type max_rank() const {
     rank_type local_max_rank = 0;
 
     for (const auto &item_info_pair : m_local_item_parent_map) {
