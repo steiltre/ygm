@@ -768,37 +768,36 @@ return std::make_tuple(curr_cache_entry->item,
                       << curr_cache_entry->item << ", "
                       << curr_cache_entry->item_info.get_parent() << ")"
                       << std::endl;
-        prev_cache_entry = curr_cache_entry;
-        curr_cache_entry =
-            &m_cache.get_cache_entry(prev_cache_entry->item_info.get_parent());
-        ++cache_hits;
       }
-      while (prev_cache_entry->item_info.get_parent() ==
+      prev_cache_entry = curr_cache_entry;
+      curr_cache_entry =
+          &m_cache.get_cache_entry(prev_cache_entry->item_info.get_parent());
+      ++cache_hits;
+    } while (prev_cache_entry->item_info.get_parent() ==
                  curr_cache_entry->item &&
              curr_cache_entry->occupied &&
-             prev_cache_entry->item != curr_cache_entry->item)
-        ;
+             prev_cache_entry->item != curr_cache_entry->item);
 
-      return std::make_tuple(curr_cache_entry->item,
-                             curr_cache_entry->item_info.get_rank(),
-                             curr_cache_entry->item_info.get_parent());
-    }
+    return std::make_tuple(curr_cache_entry->item,
+                           curr_cache_entry->item_info.get_rank(),
+                           curr_cache_entry->item_info.get_parent());
+  }
 
-   protected:
-    disjoint_set_impl() = delete;
+ protected:
+  disjoint_set_impl() = delete;
 
-    ygm::comm         m_comm;
-    self_ygm_ptr_type pthis;
-    parent_map_type   m_local_item_parent_map;
+  ygm::comm         m_comm;
+  self_ygm_ptr_type pthis;
+  parent_map_type   m_local_item_parent_map;
 
-    hash_cache m_cache;
+  hash_cache m_cache;
 
-    int64_t              simul_parent_walk_functor_count;
-    int64_t              resolve_merge_lambda_count;
-    int64_t              update_parent_lambda_count;
-    int64_t              roots_visited;
-    std::vector<int64_t> walk_visit_ranks;
-    int64_t              cache_rank_7;
-    int64_t              cache_hits;
-  };
+  int64_t              simul_parent_walk_functor_count;
+  int64_t              resolve_merge_lambda_count;
+  int64_t              update_parent_lambda_count;
+  int64_t              roots_visited;
+  std::vector<int64_t> walk_visit_ranks;
+  int64_t              cache_rank_7;
+  int64_t              cache_hits;
+};
 }  // namespace ygm::container::detail
