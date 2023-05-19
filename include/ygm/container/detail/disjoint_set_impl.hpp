@@ -755,9 +755,9 @@ return std::make_tuple(curr_cache_entry->item,
         &m_cache.get_cache_entry(item);
 
     // Don't walk cache if first item is wrong
-    if (curr_cache_entry->item != item) {
-      return std::make_tuple(item, r, parent);
-    }
+    // if (curr_cache_entry->item != item) {
+    return std::make_tuple(item, r, parent);
+    //}
 
     size_t counter = 0;
 
