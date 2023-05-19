@@ -721,25 +721,55 @@ class disjoint_set_impl {
   }
 
  private:
+  /*
+const std::tuple<value_type, rank_type, value_type> walk_cache(
+const value_type &item, const rank_type &r, const value_type &parent) {
+const value_type                       *curr_item = &item;
+typename hash_cache::cache_entry        tmp_cache_entry(item,
+                                                      rank_parent_t(r, parent));
+const typename hash_cache::cache_entry *curr_cache_entry = &tmp_cache_entry;
+const typename hash_cache::cache_entry *next_cache_entry =
+  &m_cache.get_cache_entry(item);
+
+while (*curr_item == next_cache_entry->item && next_cache_entry->occupied &&
+     *curr_cache_entry->item != next_cache_entry->item) {
+curr_cache_entry = next_cache_entry;
+curr_item        = &curr_cache_entry->item;
+next_cache_entry = &m_cache.get_cache_entry(*curr_item);
+                  ++cache_hits;
+}
+
+return std::make_tuple(curr_cache_entry->item,
+                     curr_cache_entry->item_info.get_rank(),
+                     curr_cache_entry->item_info.get_parent());
+}
+  */
+
   const std::tuple<value_type, rank_type, value_type> walk_cache(
       const value_type &item, const rank_type &r, const value_type &parent) {
-    const value_type                       *curr_item = &item;
-    typename hash_cache::cache_entry        tmp_cache_entry(item,
-                                                            rank_parent_t(r, parent));
-    const typename hash_cache::cache_entry *curr_cache_entry = &tmp_cache_entry;
-    const typename hash_cache::cache_entry *next_cache_entry =
+    const value_type                       *curr_item        = &item;
+    const typename hash_cache::cache_entry *prev_cache_entry = nullptr;
+    const typename hash_cache::cache_entry *curr_cache_entry =
         &m_cache.get_cache_entry(item);
 
-    while (*curr_item == next_cache_entry->item && next_cache_entry->occupied &&
-           *curr_item != next_cache_entry->item) {
-      curr_cache_entry = next_cache_entry;
-      curr_item        = &curr_cache_entry->item;
-      next_cache_entry = &m_cache.get_cache_entry(*curr_item);
+    // Don't walk cache if first item is wrong
+    if (curr_cache_entry->item != item) {
+      return std::make_tuple(item, r, parent);
     }
 
-    return std::make_tuple(curr_cache_entry->item,
-                           curr_cache_entry->item_info.get_rank(),
-                           curr_cache_entry->item_info.get_parent());
+    do {
+      prev_cache_entry = curr_cache_entry;
+      curr_item        = &curr_cache_entry->item_info.get_parent();
+      curr_cache_entry = &m_cache.get_cache_entry(prev_cache_entry->item);
+      ++cache_hits;
+    } while (prev_cache_entry->item_info.get_parent() ==
+                 curr_cache_entry->item &&
+             curr_cache_entry->occupied &&
+             *prev_cache_entry->item != curr_cache_entry->item)
+
+        return std::make_tuple(curr_cache_entry->item,
+                               curr_cache_entry->item_info.get_rank(),
+                               curr_cache_entry->item_info.get_parent());
   }
 
  protected:
@@ -757,5 +787,6 @@ class disjoint_set_impl {
   int64_t              roots_visited;
   std::vector<int64_t> walk_visit_ranks;
   int64_t              cache_rank_7;
+  int64_t              cache_hits;
 };
 }  // namespace ygm::container::detail
