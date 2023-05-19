@@ -754,6 +754,8 @@ return std::make_tuple(curr_cache_entry->item,
     const typename hash_cache::cache_entry *curr_cache_entry =
         &m_cache.get_cache_entry(item);
 
+    std::cout << curr_cache_entry << std::endl;
+
     // Don't walk cache if first item is wrong
     if (curr_cache_entry->item != item) {
       return std::make_tuple(item, r, parent);
