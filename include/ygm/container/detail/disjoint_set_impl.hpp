@@ -295,12 +295,10 @@ class disjoint_set_impl {
           ++(p_dset->roots_visited);
         }
 
-        /*
-std::tie(my_item, my_rank, my_parent) =
-p_dset->walk_cache(my_item, my_rank, my_parent);
-std::tie(other_item, other_rank, other_parent) =
-p_dset->walk_cache(other_item, other_rank, other_parent);
-                        */
+        std::tie(my_item, my_rank, my_parent) =
+            p_dset->walk_cache(my_item, my_rank, my_parent);
+        std::tie(other_item, other_rank, other_parent) =
+            p_dset->walk_cache(other_item, other_rank, other_parent);
 
         if (not rank_7 && my_rank == 7) {
           ++(p_dset->cache_rank_7);
@@ -757,9 +755,9 @@ return std::make_tuple(curr_cache_entry->item,
         &m_cache.get_cache_entry(item);
 
     // Don't walk cache if first item is wrong
-    if (curr_cache_entry->item != item) {
-      return std::make_tuple(item, r, parent);
-    }
+    // if (curr_cache_entry->item != item) {
+    return std::make_tuple(item, r, parent);
+    //}
 
     size_t counter = 0;
 
