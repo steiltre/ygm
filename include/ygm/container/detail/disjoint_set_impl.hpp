@@ -762,7 +762,7 @@ return std::make_tuple(curr_cache_entry->item,
     size_t counter = 0;
 
     do {
-      if (counter > 0) {
+      if (counter > 1000) {
         m_comm.cout() << "(" << prev_cache_entry->item << ", "
                       << prev_cache_entry->item_info.get_parent() << ", "
                       << curr_cache_entry->item << ", "
