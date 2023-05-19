@@ -773,6 +773,7 @@ return std::make_tuple(curr_cache_entry->item,
       curr_cache_entry =
           &m_cache.get_cache_entry(prev_cache_entry->item_info.get_parent());
       ++cache_hits;
+      ++counter;
     } while (prev_cache_entry->item_info.get_parent() ==
                  curr_cache_entry->item &&
              curr_cache_entry->occupied &&
