@@ -236,9 +236,9 @@ class disjoint_set_impl {
   void async_union_and_execute(const value_type &a, const value_type &b,
                                Function fn, const FunctionArgs &...args) {
     static auto update_parent_and_cache_lambda =
-        [](auto p_dset, auto &item_info, const value_type &new_parent,
-           const rank_type &new_rank) {
-          p_dset->m_cache.add_cache_entry(item_info.second.get_parent(),
+        [](auto p_dset, auto &item_info, const value_type &old_parent,
+           const value_type &new_parent, const rank_type &new_rank) {
+          p_dset->m_cache.add_cache_entry(old_parent,
                                           rank_parent_t(new_rank, new_parent));
 
           item_info.second.set_parent(new_parent);
@@ -306,7 +306,7 @@ class disjoint_set_impl {
 
         // Path splitting
         if (my_child != my_item) {
-          p_dset->async_visit(my_child, update_parent_and_cache_lambda,
+          p_dset->async_visit(my_child, update_parent_and_cache_lambda, my_item,
                               my_parent, my_rank);
         }
 
