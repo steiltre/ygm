@@ -755,20 +755,20 @@ return std::make_tuple(curr_cache_entry->item,
         &m_cache.get_cache_entry(item);
 
     // Don't walk cache if first item is wrong
-    // if (curr_cache_entry->item != item) {
-    return std::make_tuple(item, r, parent);
-    //}
+    if (curr_cache_entry->item != item) {
+      return std::make_tuple(item, r, parent);
+    }
 
     size_t counter = 0;
 
     do {
-      if (counter > 1000) {
-        m_comm.cout() << "(" << prev_cache_entry->item << ", "
-                      << prev_cache_entry->item_info.get_parent() << ", "
-                      << curr_cache_entry->item << ", "
-                      << curr_cache_entry->item_info.get_parent() << ")"
-                      << std::endl;
-      }
+      // if (counter > 1000) {
+      m_comm.cout() << "(" << prev_cache_entry->item << ", "
+                    << prev_cache_entry->item_info.get_parent() << ", "
+                    << curr_cache_entry->item << ", "
+                    << curr_cache_entry->item_info.get_parent() << ")"
+                    << counter << std::endl;
+      //}
       prev_cache_entry = curr_cache_entry;
       curr_cache_entry =
           &m_cache.get_cache_entry(prev_cache_entry->item_info.get_parent());
