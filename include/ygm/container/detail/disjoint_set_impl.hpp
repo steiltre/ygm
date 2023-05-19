@@ -766,11 +766,11 @@ return std::make_tuple(curr_cache_entry->item,
     } while (prev_cache_entry->item_info.get_parent() ==
                  curr_cache_entry->item &&
              curr_cache_entry->occupied &&
-             prev_cache_entry->item != curr_cache_entry->item)
+             prev_cache_entry->item != curr_cache_entry->item);
 
-        return std::make_tuple(curr_cache_entry->item,
-                               curr_cache_entry->item_info.get_rank(),
-                               curr_cache_entry->item_info.get_parent());
+    return std::make_tuple(curr_cache_entry->item,
+                           curr_cache_entry->item_info.get_rank(),
+                           curr_cache_entry->item_info.get_parent());
   }
 
  protected:
