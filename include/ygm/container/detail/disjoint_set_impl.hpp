@@ -755,7 +755,7 @@ return std::make_tuple(curr_cache_entry->item,
         &m_cache.get_cache_entry(item);
 
     // Don't walk cache if first item is wrong
-    if (curr_cache_entry->item != item) {
+    if (curr_cache_entry->item != item || not curr_cache_entry->occupied) {
       return std::make_tuple(item, r, parent);
     }
 
