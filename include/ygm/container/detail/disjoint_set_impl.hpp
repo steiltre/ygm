@@ -750,7 +750,6 @@ return std::make_tuple(curr_cache_entry->item,
 
   const std::tuple<value_type, rank_type, value_type> walk_cache(
       const value_type &item, const rank_type &r, const value_type &parent) {
-    const value_type                       *curr_item        = &item;
     const typename hash_cache::cache_entry *prev_cache_entry = nullptr;
     const typename hash_cache::cache_entry *curr_cache_entry =
         &m_cache.get_cache_entry(item);
@@ -762,13 +761,12 @@ return std::make_tuple(curr_cache_entry->item,
 
     do {
       prev_cache_entry = curr_cache_entry;
-      curr_item        = &curr_cache_entry->item_info.get_parent();
       curr_cache_entry = &m_cache.get_cache_entry(prev_cache_entry->item);
       ++cache_hits;
     } while (prev_cache_entry->item_info.get_parent() ==
                  curr_cache_entry->item &&
              curr_cache_entry->occupied &&
-             *prev_cache_entry->item != curr_cache_entry->item)
+             prev_cache_entry->item != curr_cache_entry->item)
 
         return std::make_tuple(curr_cache_entry->item,
                                curr_cache_entry->item_info.get_rank(),
