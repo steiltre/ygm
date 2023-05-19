@@ -295,10 +295,10 @@ class disjoint_set_impl {
           ++(p_dset->roots_visited);
         }
 
-        // std::tie(my_item, my_rank, my_parent) =
-        // p_dset->walk_cache(my_item, my_rank, my_parent);
-        // std::tie(other_item, other_rank, other_parent) =
-        // p_dset->walk_cache(other_item, other_rank, other_parent);
+        std::tie(my_item, my_rank, my_parent) =
+            p_dset->walk_cache(my_item, my_rank, my_parent);
+        std::tie(other_item, other_rank, other_parent) =
+            p_dset->walk_cache(other_item, other_rank, other_parent);
 
         if (not rank_7 && my_rank == 7) {
           ++(p_dset->cache_rank_7);
@@ -761,23 +761,25 @@ return std::make_tuple(curr_cache_entry->item,
 
     size_t counter = 0;
 
-    do {
-      if (counter > 1000) {
-        m_comm.cout() << "(" << prev_cache_entry->item << ", "
-                      << prev_cache_entry->item_info.get_parent() << ", "
-                      << curr_cache_entry->item << ", "
-                      << curr_cache_entry->item_info.get_parent() << ")"
-                      << std::endl;
-      }
-      prev_cache_entry = curr_cache_entry;
-      curr_cache_entry =
-          &m_cache.get_cache_entry(prev_cache_entry->item_info.get_parent());
-      ++cache_hits;
-      ++counter;
-    } while (prev_cache_entry->item_info.get_parent() ==
-                 curr_cache_entry->item &&
-             curr_cache_entry->occupied &&
-             prev_cache_entry->item != curr_cache_entry->item);
+    /*
+do {
+if (counter > 1000) {
+m_comm.cout() << "(" << prev_cache_entry->item << ", "
+          << prev_cache_entry->item_info.get_parent() << ", "
+          << curr_cache_entry->item << ", "
+          << curr_cache_entry->item_info.get_parent() << ")"
+          << std::endl;
+}
+prev_cache_entry = curr_cache_entry;
+curr_cache_entry =
+&m_cache.get_cache_entry(prev_cache_entry->item_info.get_parent());
+++cache_hits;
+++counter;
+} while (prev_cache_entry->item_info.get_parent() ==
+     curr_cache_entry->item &&
+ curr_cache_entry->occupied &&
+ prev_cache_entry->item != curr_cache_entry->item);
+                                     */
 
     return std::make_tuple(curr_cache_entry->item,
                            curr_cache_entry->item_info.get_rank(),
