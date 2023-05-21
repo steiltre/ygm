@@ -303,6 +303,10 @@ class disjoint_set_impl {
         std::tie(other_item, other_rank, other_parent) =
             p_dset->walk_cache(other_item, other_rank, other_parent);
 
+        m_comm.cout() << "After cache: (" << my_item << ", " << my_rank << ", "
+                      << my_parent << ")\t(" << other_item << ", " << other_rank
+                      << ", " << other_parent << ")" << std::endl;
+
         if (not rank_7 && my_rank == 7) {
           ++(p_dset->cache_rank_7);
         }
