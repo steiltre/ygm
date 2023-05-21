@@ -238,6 +238,9 @@ class disjoint_set_impl {
     static auto update_parent_and_cache_lambda =
         [](auto p_dset, auto &item_info, const value_type &old_parent,
            const value_type &new_parent, const rank_type &new_rank) {
+          p_dset->m_comm.cout()
+              << "Setting cache for " << old_parent << ": (" << new_rank << ", "
+              << new_parent << ")" << std::endl;
           p_dset->m_cache.add_cache_entry(old_parent,
                                           rank_parent_t(new_rank, new_parent));
 
