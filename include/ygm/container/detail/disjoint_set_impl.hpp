@@ -769,7 +769,8 @@ return std::make_tuple(curr_cache_entry->item,
 
     // Don't walk cache if first item is wrong
     if (curr_cache_entry->item_info.get_parent() != parent ||
-        not curr_cache_entry->occupied) {
+        not curr_cache_entry->occupied ||
+        curr_cache_entry->item_info.get_rank() < r) {
       return std::make_tuple(item, r, parent);
     }
 
@@ -791,7 +792,9 @@ return std::make_tuple(curr_cache_entry->item,
     } while (prev_cache_entry->item_info.get_parent() ==
                  curr_cache_entry->item &&
              curr_cache_entry->occupied &&
-             prev_cache_entry->item != curr_cache_entry->item);
+             prev_cache_entry->item != curr_cache_entry->item &&
+             prev_cache_entry->item_info.get_rank() <=
+                 curr_cache_entry->item_info.get_rank());
 
     return std::make_tuple(prev_cache_entry->item,
                            prev_cache_entry->item_info.get_rank(),
