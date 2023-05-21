@@ -298,6 +298,11 @@ class disjoint_set_impl {
           ++(p_dset->roots_visited);
         }
 
+        p_dset->m_comm.cout()
+            << "Before cache: (" << my_item << ", " << my_rank << ", "
+            << my_parent << ")\t(" << other_item << ", " << other_rank << ", "
+            << other_parent << ")" << std::endl;
+
         std::tie(my_item, my_rank, my_parent) =
             p_dset->walk_cache(my_item, my_rank, my_parent);
         std::tie(other_item, other_rank, other_parent) =
