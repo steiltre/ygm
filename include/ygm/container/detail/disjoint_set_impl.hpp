@@ -238,11 +238,11 @@ class disjoint_set_impl {
     static auto update_parent_and_cache_lambda =
         [](auto p_dset, auto &item_info, const value_type &old_parent,
            const value_type &new_parent, const rank_type &new_rank) {
-          // p_dset->m_comm.cout()
-          //<< "Setting cache for " << old_parent << ": (" << new_rank << ", "
-          //<< new_parent << ")" << std::endl;
-          // p_dset->m_cache.add_cache_entry(old_parent,
-          // rank_parent_t(new_rank, new_parent));
+          p_dset->m_comm.cout()
+              << "Setting cache for " << old_parent << ": (" << new_rank << ", "
+              << new_parent << ")" << std::endl;
+          p_dset->m_cache.add_cache_entry(old_parent,
+                                          rank_parent_t(new_rank, new_parent));
 
           item_info.second.set_parent(new_parent);
           ++(p_dset->update_parent_lambda_count);
@@ -765,13 +765,13 @@ return std::make_tuple(curr_cache_entry->item,
     size_t counter = 0;
 
     do {
-      if (counter > 1000) {
-        m_comm.cout() << "(" << prev_cache_entry->item << ", "
-                      << prev_cache_entry->item_info.get_parent() << ", "
-                      << curr_cache_entry->item << ", "
-                      << curr_cache_entry->item_info.get_parent() << ")"
-                      << counter << std::endl;
-      }
+      // if (counter > 1000) {
+      m_comm.cout() << "(" << prev_cache_entry->item << ", "
+                    << prev_cache_entry->item_info.get_parent() << ", "
+                    << curr_cache_entry->item << ", "
+                    << curr_cache_entry->item_info.get_parent() << ")"
+                    << counter << std::endl;
+      //}
       prev_cache_entry = curr_cache_entry;
       curr_cache_entry =
           &m_cache.get_cache_entry(prev_cache_entry->item_info.get_parent());
