@@ -765,10 +765,10 @@ return std::make_tuple(curr_cache_entry->item,
       const value_type &item, const rank_type &r, const value_type &parent) {
     const typename hash_cache::cache_entry *prev_cache_entry = nullptr;
     const typename hash_cache::cache_entry *curr_cache_entry =
-        &m_cache.get_cache_entry(item);
+        &m_cache.get_cache_entry(parent);
 
     // Don't walk cache if first item is wrong
-    if (curr_cache_entry->item != item || not curr_cache_entry->occupied) {
+    if (curr_cache_entry->parent != parent || not curr_cache_entry->occupied) {
       return std::make_tuple(item, r, parent);
     }
 
