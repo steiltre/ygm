@@ -725,7 +725,10 @@ class disjoint_set_impl {
         "\nupdate_parent_lambda_count:\n\tSum: ",
         ygm::sum(update_parent_lambda_count, m_comm),
         "\n\tMin: ", ygm::min(update_parent_lambda_count, m_comm),
-        "\n\tMax: ", ygm::max(update_parent_lambda_count, m_comm));
+        "\n\tMax: ", ygm::max(update_parent_lambda_count, m_comm),
+        "\ncache hits:\n\tSum: ", ygm::sum(cache_hits, m_comm),
+        "\n\tMin: ", ygm::min(cache_hits, m_comm),
+        "\n\tMax: ", ygm::max(cache_hits, m_comm));
 
     m_comm.cout0() << "\nWalk visit ranks:\n\t\t";
     for (int i = 0; i < 16; ++i) {
