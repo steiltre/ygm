@@ -303,10 +303,9 @@ class disjoint_set_impl {
         //<< my_parent << ")\t(" << other_item << ", " << other_rank << ", "
         //<< other_parent << ")" << std::endl;
 
-        std::tie(my_item, my_rank, my_parent) =
-            p_dset->walk_cache(my_item, my_rank, my_parent);
-        std::tie(other_item, other_rank, other_parent) =
-            p_dset->walk_cache(other_item, other_rank, other_parent);
+        std::tie(my_parent, my_rank) = p_dset->walk_cache(my_parent, my_rank);
+        std::tie(other_parent, other_rank) =
+            p_dset->walk_cache(other_parent, other_rank);
 
         // p_dset->m_comm.cout()
         //<< "After cache: (" << my_item << ", " << my_rank << ", "
@@ -761,17 +760,16 @@ return std::make_tuple(curr_cache_entry->item,
 }
   */
 
-  const std::tuple<value_type, rank_type, value_type> walk_cache(
-      const value_type &item, const rank_type &r, const value_type &parent) {
+  const std::pair<value_type, rank_type> walk_cache(const value_type &item,
+                                                    const rank_type  &r) {
     const typename hash_cache::cache_entry *prev_cache_entry = nullptr;
     const typename hash_cache::cache_entry *curr_cache_entry =
-        &m_cache.get_cache_entry(parent);
+        &m_cache.get_cache_entry(item);
 
     // Don't walk cache if first item is wrong
-    if (curr_cache_entry->item_info.get_parent() != parent ||
-        not curr_cache_entry->occupied ||
+    if (curr_cache_entry->item != item || not curr_cache_entry->occupied ||
         curr_cache_entry->item_info.get_rank() < r) {
-      return std::make_tuple(item, r, parent);
+      return std::make_pair(item, r);
     }
 
     size_t counter = 0;
@@ -796,9 +794,8 @@ return std::make_tuple(curr_cache_entry->item,
              prev_cache_entry->item_info.get_rank() <=
                  curr_cache_entry->item_info.get_rank());
 
-    return std::make_tuple(prev_cache_entry->item,
-                           prev_cache_entry->item_info.get_rank(),
-                           prev_cache_entry->item_info.get_parent());
+    return std::make_tuple(prev_cache_entry->item_info.get_parent(),
+                           prev_cache_entry->item_info.get_rank());
   }
 
  protected:
