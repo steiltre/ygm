@@ -326,8 +326,6 @@ class disjoint_set_impl {
           return;
         }
 
-        ++(p_dset->walk_visit_ranks)[my_rank];
-
         if (my_rank > other_rank) {  // Other path has lower rank
           p_dset->async_visit(other_parent, simul_parent_walk_functor(),
                               other_item, my_parent, my_item, my_rank, orig_a,
@@ -726,10 +724,7 @@ class disjoint_set_impl {
         "\nupdate_parent_lambda_count:\n\tSum: ",
         ygm::sum(update_parent_lambda_count, m_comm),
         "\n\tMin: ", ygm::min(update_parent_lambda_count, m_comm),
-        "\n\tMax: ", ygm::max(update_parent_lambda_count, m_comm),
-        "\ncache hits:\n\tSum: ", ygm::sum(cache_hits, m_comm),
-        "\n\tMin: ", ygm::min(cache_hits, m_comm),
-        "\n\tMax: ", ygm::max(cache_hits, m_comm));
+        "\n\tMax: ", ygm::max(update_parent_lambda_count, m_comm));
 
     m_comm.cout0() << "\nWalk visit ranks:\n\t\t";
     for (int i = 0; i < 16; ++i) {
