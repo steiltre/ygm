@@ -103,7 +103,6 @@ class disjoint_set_impl {
   disjoint_set_impl(ygm::comm &comm)
       : m_comm(comm), pthis(this), m_cache(2048) {
     pthis.check(m_comm);
-    clear_counters();
   }
 
   ~disjoint_set_impl() { m_comm.barrier(); }
