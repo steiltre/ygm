@@ -794,8 +794,8 @@ return std::make_tuple(curr_cache_entry->item,
              prev_cache_entry->item_info.get_rank() <=
                  curr_cache_entry->item_info.get_rank());
 
-    return std::make_tuple(prev_cache_entry->item_info.get_parent(),
-                           prev_cache_entry->item_info.get_rank());
+    return std::make_pair(prev_cache_entry->item_info.get_parent(),
+                          prev_cache_entry->item_info.get_rank());
   }
 
  protected:
