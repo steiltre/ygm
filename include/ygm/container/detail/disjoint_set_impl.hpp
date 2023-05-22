@@ -683,6 +683,7 @@ class disjoint_set_impl {
     update_parent_lambda_count      = 0;
     roots_visited                   = 0;
     cache_rank_7                    = 0;
+    cache_hits                      = 0;
 
     walk_visit_ranks.clear();
     walk_visit_ranks.resize(16);
