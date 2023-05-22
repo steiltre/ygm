@@ -245,7 +245,6 @@ class disjoint_set_impl {
                                           rank_parent_t(new_rank, new_parent));
 
           item_info.second.set_parent(new_parent);
-          ++(p_dset->update_parent_lambda_count);
         };
 
     static auto resolve_merge_lambda = [](auto p_dset, auto &item_info,
@@ -261,7 +260,6 @@ class disjoint_set_impl {
       } else {
         ASSERT_RELEASE(my_rank == merging_rank);
         if (my_parent == my_item) {  // Has not found new parent
-          ++(p_dset->roots_visited);
           item_info.second.increase_rank(merging_rank + 1);
         } else {  // Tell merging item about new parent
           p_dset->async_visit(
@@ -272,7 +270,6 @@ class disjoint_set_impl {
               my_parent);
         }
       }
-      ++(p_dset->resolve_merge_lambda_count);
     };
 
     // Walking up parent trees can be expressed as a recursive operation
@@ -290,31 +287,9 @@ class disjoint_set_impl {
         rank_type  my_rank   = my_item_info.second.get_rank();
         value_type my_parent = my_item_info.second.get_parent();
 
-        bool rank_7 = (my_rank == 7);
-
-        ++(p_dset->simul_parent_walk_functor_count);
-        ++(p_dset->walk_visit_ranks)[my_rank];
-        if (my_parent == my_item) {
-          ++(p_dset->roots_visited);
-        }
-
-        // p_dset->m_comm.cout()
-        //<< "Before cache: (" << my_item << ", " << my_rank << ", "
-        //<< my_parent << ")\t(" << other_item << ", " << other_rank << ", "
-        //<< other_parent << ")" << std::endl;
-
         std::tie(my_parent, my_rank) = p_dset->walk_cache(my_parent, my_rank);
         std::tie(other_parent, other_rank) =
             p_dset->walk_cache(other_parent, other_rank);
-
-        // p_dset->m_comm.cout()
-        //<< "After cache: (" << my_item << ", " << my_rank << ", "
-        //<< my_parent << ")\t(" << other_item << ", " << other_rank << ", "
-        //<< other_parent << ")" << std::endl;
-
-        if (not rank_7 && my_rank == 7) {
-          ++(p_dset->cache_rank_7);
-        }
 
         // Path splitting
         if (my_child != my_item) {
@@ -675,65 +650,6 @@ class disjoint_set_impl {
 
   ygm::comm &comm() { return m_comm; }
 
-  void clear_counters() {
-    simul_parent_walk_functor_count = 0;
-    resolve_merge_lambda_count      = 0;
-    update_parent_lambda_count      = 0;
-    roots_visited                   = 0;
-    cache_rank_7                    = 0;
-    cache_hits                      = 0;
-
-    walk_visit_ranks.clear();
-    walk_visit_ranks.resize(16);
-  }
-
-  void print_counters() {
-    std::vector<int64_t> walk_visit_sum(16);
-    std::vector<int64_t> walk_visit_min(16);
-    std::vector<int64_t> walk_visit_max(16);
-
-    MPI_Allreduce(walk_visit_ranks.data(), walk_visit_sum.data(), 16,
-                  MPI_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
-    MPI_Allreduce(walk_visit_ranks.data(), walk_visit_min.data(), 16,
-                  MPI_LONG_LONG, MPI_MIN, MPI_COMM_WORLD);
-    MPI_Allreduce(walk_visit_ranks.data(), walk_visit_max.data(), 16,
-                  MPI_LONG_LONG, MPI_MAX, MPI_COMM_WORLD);
-
-    m_comm.cout0(
-        "----Disjoint set counters----", "\nMax rank:\t", max_rank(),
-        "\nRank 7s:\t", count_rank(7),
-        "\nCache rank 7 visits:\n\tSum: ", ygm::sum(cache_rank_7, m_comm),
-        "\n\tMin: ", ygm::min(cache_rank_7, m_comm),
-        "\n\tMax: ", ygm::max(cache_rank_7, m_comm),
-        "\nMax cached ranks: min: ", min_max_cached_rank(),
-        "\t max: ", max_max_cached_rank(),
-        "\ncache hits:\n\tSum: ", ygm::sum(cache_hits, m_comm),
-        "\n\tMin: ", ygm::min(cache_hits, m_comm),
-        "\n\tMax: ", ygm::max(cache_hits, m_comm),
-        "\nsimul_parent_walk_functor_count:\n\tSum: ",
-        ygm::sum(simul_parent_walk_functor_count, m_comm),
-        "\n\tMin: ", ygm::min(simul_parent_walk_functor_count, m_comm),
-        "\n\tMax: ", ygm::max(simul_parent_walk_functor_count, m_comm),
-        "\nroots_visited:\n\tSum: ", ygm::sum(roots_visited, m_comm),
-        "\n\tMin: ", ygm::min(roots_visited, m_comm),
-        "\n\tMax: ", ygm::max(roots_visited, m_comm),
-        "\nresolve_merge_lambda_count:\n\tSum: ",
-        ygm::sum(resolve_merge_lambda_count, m_comm),
-        "\n\tMin: ", ygm::min(resolve_merge_lambda_count, m_comm),
-        "\n\tMax: ", ygm::max(resolve_merge_lambda_count, m_comm),
-        "\nupdate_parent_lambda_count:\n\tSum: ",
-        ygm::sum(update_parent_lambda_count, m_comm),
-        "\n\tMin: ", ygm::min(update_parent_lambda_count, m_comm),
-        "\n\tMax: ", ygm::max(update_parent_lambda_count, m_comm));
-
-    m_comm.cout0() << "\nWalk visit ranks:\n\t\t";
-    for (int i = 0; i < 16; ++i) {
-      m_comm.cout0() << "  (" << i << ", " << walk_visit_sum[i] << ", "
-                     << walk_visit_min[i] << ", " << walk_visit_max[i] << ")";
-    }
-    m_comm.cout0();
-  }
-
  private:
   /*
 const std::tuple<value_type, rank_type, value_type> walk_cache(
@@ -771,21 +687,10 @@ return std::make_tuple(curr_cache_entry->item,
       return std::make_pair(item, r);
     }
 
-    size_t counter = 0;
-
     do {
-      if (counter > 1000) {
-        m_comm.cout() << "(" << prev_cache_entry->item << ", "
-                      << prev_cache_entry->item_info.get_parent() << ", "
-                      << curr_cache_entry->item << ", "
-                      << curr_cache_entry->item_info.get_parent() << ")"
-                      << counter << std::endl;
-      }
       prev_cache_entry = curr_cache_entry;
       curr_cache_entry =
           &m_cache.get_cache_entry(prev_cache_entry->item_info.get_parent());
-      ++cache_hits;
-      ++counter;
     } while (prev_cache_entry->item_info.get_parent() ==
                  curr_cache_entry->item &&
              curr_cache_entry->occupied &&
@@ -805,13 +710,5 @@ return std::make_tuple(curr_cache_entry->item,
   parent_map_type   m_local_item_parent_map;
 
   hash_cache m_cache;
-
-  int64_t              simul_parent_walk_functor_count;
-  int64_t              resolve_merge_lambda_count;
-  int64_t              update_parent_lambda_count;
-  int64_t              roots_visited;
-  std::vector<int64_t> walk_visit_ranks;
-  int64_t              cache_rank_7;
-  int64_t              cache_hits;
 };
 }  // namespace ygm::container::detail
