@@ -174,15 +174,15 @@ class disjoint_set_impl {
     struct simul_parent_walk_functor {
       void operator()(self_ygm_ptr_type                           p_dset,
                       std::pair<const value_type, rank_parent_t> &my_item_info,
-                      const value_type &my_child, value_type &other_parent,
-                      value_type &other_item, rank_type other_rank) {
+                      const value_type &my_child, value_type other_parent,
+                      value_type other_item, rank_type other_rank) {
         // Note: other_item needs rank info for comparison with my_item's
         // parent. All others need rank and item to determine if other_item
         // has been visited/initialized.
 
-        value_type &my_item   = my_item_info.first;
-        rank_type  &my_rank   = my_item_info.second.get_rank();
-        value_type &my_parent = my_item_info.second.get_parent();
+        value_type my_item   = my_item_info.first;
+        rank_type  my_rank   = my_item_info.second.get_rank();
+        value_type my_parent = my_item_info.second.get_parent();
 
         std::tie(my_parent, my_rank) = p_dset->walk_cache(my_parent, my_rank);
         std::tie(other_parent, other_rank) =
