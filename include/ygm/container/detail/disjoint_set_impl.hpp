@@ -190,7 +190,7 @@ class disjoint_set_impl {
 
         // Path splitting
         if (my_child != my_item) {
-          p_dset->async_visit(my_child, update_parent_lambda, my_item,
+          p_dset->async_visit(my_child, update_parent_and_cache_lambda, my_item,
                               my_parent, my_rank);
         }
 
@@ -338,8 +338,6 @@ class disjoint_set_impl {
                     "remote disjoint_set lambda signature must be invocable "
                     "with (const value_type &, const value_type &) signature");
               }
-
-              // return;
 
               p_dset->async_visit(other_parent, resolve_merge_lambda, my_item,
                                   my_rank);
