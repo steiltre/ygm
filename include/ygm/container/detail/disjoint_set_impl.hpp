@@ -135,10 +135,14 @@ class disjoint_set_impl {
   }
 
   void async_union(const value_type &a, const value_type &b) {
-    static auto update_parent_lambda = [](auto             &item_info,
-                                          const value_type &new_parent) {
-      item_info.second.set_parent(new_parent);
-    };
+    static auto update_parent_and_cache_lambda =
+        [](auto p_dset, auto &item_info, const value_type &old_parent,
+           const value_type &new_parent, const rank_type &new_rank) {
+          p_dset->m_cache.add_cache_entry(old_parent,
+                                          rank_parent_t(new_rank, new_parent));
+
+          item_info.second.set_parent(new_parent);
+        };
 
     static auto resolve_merge_lambda = [](auto p_dset, auto &item_info,
                                           const value_type &merging_item,
@@ -170,21 +174,24 @@ class disjoint_set_impl {
     struct simul_parent_walk_functor {
       void operator()(self_ygm_ptr_type                           p_dset,
                       std::pair<const value_type, rank_parent_t> &my_item_info,
-                      const value_type                           &my_child,
-                      const value_type                           &other_parent,
-                      const value_type                           &other_item,
-                      const rank_type                             other_rank) {
+                      const value_type &my_child, value_type &other_parent,
+                      const value_type &other_item, rank_type other_rank) {
         // Note: other_item needs rank info for comparison with my_item's
         // parent. All others need rank and item to determine if other_item
         // has been visited/initialized.
 
         const value_type &my_item   = my_item_info.first;
-        const rank_type  &my_rank   = my_item_info.second.get_rank();
-        const value_type &my_parent = my_item_info.second.get_parent();
+        rank_type        &my_rank   = my_item_info.second.get_rank();
+        value_type       &my_parent = my_item_info.second.get_parent();
+
+        std::tie(my_parent, my_rank) = p_dset->walk_cache(my_parent, my_rank);
+        std::tie(other_parent, other_rank) =
+            p_dset->walk_cache(other_parent, other_rank);
 
         // Path splitting
         if (my_child != my_item) {
-          p_dset->async_visit(my_child, update_parent_lambda, my_parent);
+          p_dset->async_visit(my_child, update_parent_lambda, my_item,
+                              my_parent, my_rank);
         }
 
         if (my_parent == other_parent || my_parent == other_item) {
