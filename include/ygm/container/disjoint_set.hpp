@@ -41,6 +41,8 @@ class disjoint_set {
     return m_impl.all_find(items);
   }
 
+  void clear() { m_impl.clear(); }
+
   size_t size() { return m_impl.size(); }
 
   size_t num_sets() { return m_impl.num_sets(); }
@@ -48,9 +50,6 @@ class disjoint_set {
   typename ygm::ygm_ptr<impl_type> get_ygm_ptr() const {
     return m_impl.get_ygm_ptr();
   }
-
-  void print_counters() { m_impl.print_counters(); }
-  void clear_counters() { m_impl.clear_counters(); }
 
  private:
   impl_type m_impl;

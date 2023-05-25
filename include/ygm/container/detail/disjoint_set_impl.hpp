@@ -95,6 +95,12 @@ class disjoint_set_impl {
       return m_cache[index];
     }
 
+    void clear() {
+      for (auto &entry : m_cache) {
+        entry.occupied = false;
+      }
+    }
+
     // private:
     size_t                   m_cache_size;
     std::vector<cache_entry> m_cache;
@@ -543,6 +549,11 @@ class disjoint_set_impl {
     return to_return;
   }
 
+  void clear() {
+    m_local_item_parent_map.clear();
+    m_cache.clear();
+  }
+
   size_t size() {
     m_comm.barrier();
     return m_comm.all_reduce_sum(m_local_item_parent_map.size());
@@ -610,67 +621,9 @@ class disjoint_set_impl {
     return m_comm.all_reduce_max(local_max);
   }
 
-  size_t count_rank(const rank_type r) {
-    size_t count = 0;
-
-    for (const auto &local_item : m_local_item_parent_map) {
-      count += (local_item.second.get_rank() == r);
-    }
-
-    return ygm::sum(count, m_comm);
-  }
-
-  rank_type min_max_cached_rank() {
-    rank_type local_max = 0;
-
-    for (auto &c : m_cache.m_cache) {
-      if (c.occupied) {
-        local_max = std::max<rank_type>(c.item_info.get_rank(), local_max);
-      }
-    }
-
-    return ygm::min(local_max, m_comm);
-  }
-
-  rank_type max_max_cached_rank() {
-    rank_type local_max = 0;
-
-    for (auto &c : m_cache.m_cache) {
-      if (c.occupied) {
-        local_max = std::max<rank_type>(c.item_info.get_rank(), local_max);
-      }
-    }
-
-    return ygm::max(local_max, m_comm);
-  }
-
   ygm::comm &comm() { return m_comm; }
 
  private:
-  /*
-const std::tuple<value_type, rank_type, value_type> walk_cache(
-const value_type &item, const rank_type &r, const value_type &parent) {
-const value_type                       *curr_item = &item;
-typename hash_cache::cache_entry        tmp_cache_entry(item,
-                                                      rank_parent_t(r, parent));
-const typename hash_cache::cache_entry *curr_cache_entry = &tmp_cache_entry;
-const typename hash_cache::cache_entry *next_cache_entry =
-  &m_cache.get_cache_entry(item);
-
-while (*curr_item == next_cache_entry->item && next_cache_entry->occupied &&
-     *curr_cache_entry->item != next_cache_entry->item) {
-curr_cache_entry = next_cache_entry;
-curr_item        = &curr_cache_entry->item;
-next_cache_entry = &m_cache.get_cache_entry(*curr_item);
-                  ++cache_hits;
-}
-
-return std::make_tuple(curr_cache_entry->item,
-                     curr_cache_entry->item_info.get_rank(),
-                     curr_cache_entry->item_info.get_parent());
-}
-  */
-
   const std::pair<value_type, rank_type> walk_cache(const value_type &item,
                                                     const rank_type  &r) {
     const typename hash_cache::cache_entry *prev_cache_entry = nullptr;
