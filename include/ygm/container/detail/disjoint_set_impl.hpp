@@ -241,7 +241,25 @@ class disjoint_set_impl {
       }
     };
 
-    async_visit(a, simul_parent_walk_functor(), a, b, b, -1);
+    // Walk cache for initial items
+    value_type my_item   = a;
+    rank_type  my_rank   = -1;
+    value_type my_parent = a;
+
+    value_type other_item   = b;
+    rank_type  other_rank   = -1;
+    value_type other_parent = b;
+
+    std::tie(my_parent, my_rank)       = walk_cache(my_parent, my_rank);
+    std::tie(other_parent, other_rank) = walk_cache(other_parent, other_rank);
+
+    if (my_rank <= other_rank) {
+      async_visit(my_parent, simul_parent_walk_functor(), my_item, other_parent,
+                  other_item, other_rank);
+    } else {
+      async_visit(other_parent, simul_parent_walk_functor(), other_item,
+                  my_parent, my_item, my_rank);
+    }
   }
 
   template <typename Function, typename... FunctionArgs>
@@ -382,7 +400,25 @@ class disjoint_set_impl {
       }
     };
 
-    async_visit(a, simul_parent_walk_functor(), a, b, b, -1, a, b, args...);
+    // Walk cache for initial items
+    value_type my_item   = a;
+    rank_type  my_rank   = -1;
+    value_type my_parent = a;
+
+    value_type other_item   = b;
+    rank_type  other_rank   = -1;
+    value_type other_parent = b;
+
+    std::tie(my_parent, my_rank)       = walk_cache(my_parent, my_rank);
+    std::tie(other_parent, other_rank) = walk_cache(other_parent, other_rank);
+
+    if (my_rank <= other_rank) {
+      async_visit(my_parent, simul_parent_walk_functor(), my_item, other_parent,
+                  other_item, other_rank, a, b, args...);
+    } else {
+      async_visit(other_parent, simul_parent_walk_functor(), other_item,
+                  my_parent, my_item, my_rank, a, b, args...);
+    }
   }
 
   void all_compress() {
