@@ -11,6 +11,7 @@
 #include <ygm/container/detail/hash_partitioner.hpp>
 #include <ygm/detail/ygm_ptr.hpp>
 #include <ygm/detail/ygm_traits.hpp>
+#include <ygm/stats_tracker.hpp>
 
 namespace ygm::container::detail {
 template <typename Item, typename Partitioner>
@@ -59,11 +60,15 @@ class disjoint_set_impl {
     value_type m_parent;
   };
 
-  disjoint_set_impl(ygm::comm &comm) : m_comm(comm), pthis(this) {
+  disjoint_set_impl(ygm::comm &comm)
+      : m_comm(comm), pthis(this), m_stats(comm) {
     pthis.check(m_comm);
   }
 
-  ~disjoint_set_impl() { m_comm.barrier(); }
+  ~disjoint_set_impl() {
+    m_comm.barrier();
+    m_stats.print();
+  }
 
   typename ygm::ygm_ptr<self_type> get_ygm_ptr() const { return pthis; }
 
@@ -93,14 +98,17 @@ class disjoint_set_impl {
   }
 
   void async_union(const value_type &a, const value_type &b) {
-    static auto update_parent_lambda = [](auto             &item_info,
+    m_stats.increment_counter<"async_union">();
+    static auto update_parent_lambda = [](auto p_dset, auto &item_info,
                                           const value_type &new_parent) {
+      p_dset->m_stats.template increment_counter<"update_parent">();
       item_info.second.set_parent(new_parent);
     };
 
     static auto resolve_merge_lambda = [](auto p_dset, auto &item_info,
                                           const value_type &merging_item,
                                           const rank_type   merging_rank) {
+      p_dset->m_stats.template increment_counter<"merge_resolutions">();
       const auto &my_item   = item_info.first;
       const auto  my_rank   = item_info.second.get_rank();
       const auto &my_parent = item_info.second.get_parent();
@@ -112,6 +120,7 @@ class disjoint_set_impl {
         ASSERT_RELEASE(my_rank == merging_rank);
         if (my_parent ==
             my_item) {  // Merging new item onto root. Need to increase rank.
+          p_dset->m_stats.template increment_counter<"rank_increases">();
           item_info.second.increase_rank(merging_rank + 1);
         } else {  // Tell merging item about new parent
           p_dset->async_visit(
@@ -135,6 +144,7 @@ class disjoint_set_impl {
         // Note: other_item needs rank info for comparison with my_item's
         // parent. All others need rank and item to determine if other_item
         // has been visited/initialized.
+        p_dset->m_stats.template increment_counter<"walk_functors">();
 
         const value_type &my_item   = my_item_info.first;
         const rank_type  &my_rank   = my_item_info.second.get_rank();
@@ -154,11 +164,13 @@ class disjoint_set_impl {
                               other_item, my_parent, my_item, my_rank);
         } else if (my_rank == other_rank) {
           if (my_parent == my_item) {  // At a root
+            p_dset->m_stats.template increment_counter<"roots_reached">();
 
             if (my_item < other_parent) {  // Need to break ties in rank before
                                            // merging to avoid cycles of merges
                                            // creating cycles in disjoint set
               // Perform merge
+              p_dset->m_stats.template increment_counter<"successful_merges">();
               my_item_info.second.set_parent(
                   other_parent);  // other_parent may be of same rank as my_item
               p_dset->async_visit(other_parent, resolve_merge_lambda, my_item,
@@ -175,6 +187,8 @@ class disjoint_set_impl {
           }
         } else {                       // Current path has lower rank
           if (my_parent == my_item) {  // At a root
+            p_dset->m_stats.template increment_counter<"roots_reached">();
+            p_dset->m_stats.template increment_counter<"successful_merges">();
             my_item_info.second.set_parent(
                 other_parent);  // Safe to attach to other path
           } else {              // Not at a root
@@ -192,14 +206,17 @@ class disjoint_set_impl {
   template <typename Function, typename... FunctionArgs>
   void async_union_and_execute(const value_type &a, const value_type &b,
                                Function fn, const FunctionArgs &...args) {
-    static auto update_parent_lambda = [](auto             &item_info,
+    m_stats.increment_counter<"async_union_and_execute">();
+    static auto update_parent_lambda = [](auto p_dset, auto &item_info,
                                           const value_type &new_parent) {
+      p_dset->m_stats.template increment_counter<"update_parent">();
       item_info.second.set_parent(new_parent);
     };
 
     static auto resolve_merge_lambda = [](auto p_dset, auto &item_info,
                                           const value_type &merging_item,
                                           const rank_type   merging_rank) {
+      p_dset->m_stats.template increment_counter<"merge_resolutions">();
       const auto &my_item   = item_info.first;
       const auto  my_rank   = item_info.second.get_rank();
       const auto &my_parent = item_info.second.get_parent();
@@ -210,6 +227,7 @@ class disjoint_set_impl {
       } else {
         ASSERT_RELEASE(my_rank == merging_rank);
         if (my_parent == my_item) {  // Has not found new parent
+          p_dset->m_stats.template increment_counter<"rank_increases">();
           item_info.second.increase_rank(merging_rank + 1);
         } else {  // Tell merging item about new parent
           p_dset->async_visit(
@@ -234,6 +252,7 @@ class disjoint_set_impl {
         // Note: other_item needs rank info for comparison with my_item's
         // parent. All others need rank and item to determine if other_item
         // has been visited/initialized.
+        p_dset->m_stats.template increment_counter<"walk_functors">();
 
         const value_type &my_item   = my_item_info.first;
         const rank_type  &my_rank   = my_item_info.second.get_rank();
@@ -254,11 +273,13 @@ class disjoint_set_impl {
                               orig_b, args...);
         } else if (my_rank == other_rank) {
           if (my_parent == my_item) {  // At a root
+            p_dset->m_stats.template increment_counter<"roots_reached">();
 
             if (my_item < other_parent) {  // Need to break ties in rank before
                                            // merging to avoid cycles of merges
                                            // creating cycles in disjoint set
-              // Perform merge
+                                           // Perform merge
+              p_dset->m_stats.template increment_counter<"successful_merges">();
               my_item_info.second.set_parent(
                   other_parent);  // Guaranteed any path through current
                                   // item will find an item with rank >=
@@ -283,7 +304,7 @@ class disjoint_set_impl {
                     "with (const value_type &, const value_type &) signature");
               }
 
-              return;
+              // return;
 
               p_dset->async_visit(other_parent, resolve_merge_lambda, my_item,
                                   my_rank);
@@ -301,6 +322,8 @@ class disjoint_set_impl {
           }
         } else {                       // Current path has lower rank
           if (my_parent == my_item) {  // At a root
+            p_dset->m_stats.template increment_counter<"roots_reached">();
+            p_dset->m_stats.template increment_counter<"successful_merges">();
             my_item_info.second.set_parent(
                 other_parent);  // Safe to attach to other path
 
@@ -326,6 +349,8 @@ class disjoint_set_impl {
   }
 
   void all_compress() {
+    m_stats.start_timer<"compress time">();
+
     struct rep_query {
       value_type              rep;
       std::vector<value_type> local_inquiring_items;
@@ -419,6 +444,8 @@ class disjoint_set_impl {
 
       m_comm.barrier();
     }
+
+    m_stats.stop_timer<"compress time">();
   }
 
   template <typename Function>
@@ -569,5 +596,7 @@ class disjoint_set_impl {
   ygm::comm        &m_comm;
   self_ygm_ptr_type pthis;
   parent_map_type   m_local_item_parent_map;
+
+  ygm::stats_tracker m_stats;
 };
 }  // namespace ygm::container::detail
