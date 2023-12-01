@@ -6,6 +6,7 @@
 #pragma once
 #include <unordered_map>
 #include <vector>
+#include <ygm/collective.hpp>
 #include <ygm/comm.hpp>
 #include <ygm/container/container_traits.hpp>
 #include <ygm/container/detail/hash_partitioner.hpp>
@@ -60,8 +61,58 @@ class disjoint_set_impl {
     value_type m_parent;
   };
 
+  class hash_cache {
+   public:
+    class cache_entry {
+     public:
+      cache_entry() : occupied(false) {}
+
+      cache_entry(const value_type &_item, const rank_parent_t &_item_info)
+          : item(_item), item_info(_item_info) {}
+
+      bool          occupied = false;
+      value_type    item;
+      rank_parent_t item_info;
+    };
+
+    hash_cache(const size_t cache_size)
+        : m_cache_size(cache_size), m_cache(cache_size) {}
+
+    void add_cache_entry(const value_type    &item,
+                         const rank_parent_t &item_info) {
+      size_t index = std::hash<value_type>()(item) % m_cache_size;
+
+      auto &current_entry = m_cache[index];
+
+      // Only replace cached value if current slot is empty or if new entry's
+      // rank is higher
+      if (current_entry.occupied == false ||
+          item_info.get_rank() >= current_entry.item_info.get_rank()) {
+        current_entry.occupied  = true;
+        current_entry.item      = item;
+        current_entry.item_info = item_info;
+      }
+    }
+
+    const cache_entry &get_cache_entry(const value_type &item) {
+      size_t index = std::hash<value_type>()(item) % m_cache_size;
+
+      return m_cache[index];
+    }
+
+    void clear() {
+      for (auto &entry : m_cache) {
+        entry.occupied = false;
+      }
+    }
+
+    // private:
+    size_t                   m_cache_size;
+    std::vector<cache_entry> m_cache;
+  };
+
   disjoint_set_impl(ygm::comm &comm)
-      : m_comm(comm), pthis(this), m_stats(comm) {
+      : m_comm(comm), pthis(this), m_stats(comm), m_cache(2048) {
     pthis.check(m_comm);
   }
 
@@ -99,11 +150,16 @@ class disjoint_set_impl {
 
   void async_union(const value_type &a, const value_type &b) {
     m_stats.increment_counter<"async_union">();
-    static auto update_parent_lambda = [](auto p_dset, auto &item_info,
-                                          const value_type &new_parent) {
-      p_dset->m_stats.template increment_counter<"update_parent">();
-      item_info.second.set_parent(new_parent);
-    };
+
+    static auto update_parent_and_cache_lambda =
+        [](auto p_dset, auto &item_info, const value_type &old_parent,
+           const value_type &new_parent, const rank_type &new_rank) {
+          p_dset->m_cache.add_cache_entry(old_parent,
+                                          rank_parent_t(new_rank, new_parent));
+
+          p_dset->m_stats.template increment_counter<"update_parent">();
+          item_info.second.set_parent(new_parent);
+        };
 
     static auto resolve_merge_lambda = [](auto p_dset, auto &item_info,
                                           const value_type &merging_item,
@@ -137,22 +193,25 @@ class disjoint_set_impl {
     struct simul_parent_walk_functor {
       void operator()(self_ygm_ptr_type                           p_dset,
                       std::pair<const value_type, rank_parent_t> &my_item_info,
-                      const value_type                           &my_child,
-                      const value_type                           &other_parent,
-                      const value_type                           &other_item,
-                      const rank_type                             other_rank) {
+                      const value_type &my_child, value_type other_parent,
+                      value_type other_item, rank_type other_rank) {
         // Note: other_item needs rank info for comparison with my_item's
         // parent. All others need rank and item to determine if other_item
         // has been visited/initialized.
         p_dset->m_stats.template increment_counter<"walk_functors">();
 
-        const value_type &my_item   = my_item_info.first;
-        const rank_type  &my_rank   = my_item_info.second.get_rank();
-        const value_type &my_parent = my_item_info.second.get_parent();
+        value_type my_item   = my_item_info.first;
+        rank_type  my_rank   = my_item_info.second.get_rank();
+        value_type my_parent = my_item_info.second.get_parent();
+
+        std::tie(my_parent, my_rank) = p_dset->walk_cache(my_parent, my_rank);
+        std::tie(other_parent, other_rank) =
+            p_dset->walk_cache(other_parent, other_rank);
 
         // Path splitting
         if (my_child != my_item) {
-          p_dset->async_visit(my_child, update_parent_lambda, my_parent);
+          p_dset->async_visit(my_child, update_parent_and_cache_lambda, my_item,
+                              my_parent, my_rank);
         }
 
         if (my_parent == other_parent || my_parent == other_item) {
@@ -200,18 +259,40 @@ class disjoint_set_impl {
       }
     };
 
-    async_visit(a, simul_parent_walk_functor(), a, b, b, -1);
+    // Walk cache for initial items
+    value_type my_item   = a;
+    rank_type  my_rank   = -1;
+    value_type my_parent = a;
+
+    value_type other_item   = b;
+    rank_type  other_rank   = -1;
+    value_type other_parent = b;
+
+    std::tie(my_parent, my_rank)       = walk_cache(my_parent, my_rank);
+    std::tie(other_parent, other_rank) = walk_cache(other_parent, other_rank);
+
+    if (my_rank <= other_rank) {
+      async_visit(my_parent, simul_parent_walk_functor(), my_item, other_parent,
+                  other_item, other_rank);
+    } else {
+      async_visit(other_parent, simul_parent_walk_functor(), other_item,
+                  my_parent, my_item, my_rank);
+    }
   }
 
   template <typename Function, typename... FunctionArgs>
   void async_union_and_execute(const value_type &a, const value_type &b,
                                Function fn, const FunctionArgs &...args) {
     m_stats.increment_counter<"async_union_and_execute">();
-    static auto update_parent_lambda = [](auto p_dset, auto &item_info,
-                                          const value_type &new_parent) {
-      p_dset->m_stats.template increment_counter<"update_parent">();
-      item_info.second.set_parent(new_parent);
-    };
+    static auto update_parent_and_cache_lambda =
+        [](auto p_dset, auto &item_info, const value_type &old_parent,
+           const value_type &new_parent, const rank_type &new_rank) {
+          p_dset->m_cache.add_cache_entry(old_parent,
+                                          rank_parent_t(new_rank, new_parent));
+
+          p_dset->m_stats.template increment_counter<"update_parent">();
+          item_info.second.set_parent(new_parent);
+        };
 
     static auto resolve_merge_lambda = [](auto p_dset, auto &item_info,
                                           const value_type &merging_item,
@@ -244,9 +325,8 @@ class disjoint_set_impl {
     struct simul_parent_walk_functor {
       void operator()(self_ygm_ptr_type                           p_dset,
                       std::pair<const value_type, rank_parent_t> &my_item_info,
-                      const value_type                           &my_child,
-                      const value_type                           &other_parent,
-                      const value_type &other_item, const rank_type other_rank,
+                      const value_type &my_child, value_type other_parent,
+                      value_type other_item, rank_type other_rank,
                       const value_type &orig_a, const value_type &orig_b,
                       const FunctionArgs &...args) {
         // Note: other_item needs rank info for comparison with my_item's
@@ -254,13 +334,18 @@ class disjoint_set_impl {
         // has been visited/initialized.
         p_dset->m_stats.template increment_counter<"walk_functors">();
 
-        const value_type &my_item   = my_item_info.first;
-        const rank_type  &my_rank   = my_item_info.second.get_rank();
-        const value_type &my_parent = my_item_info.second.get_parent();
+        value_type my_item   = my_item_info.first;
+        rank_type  my_rank   = my_item_info.second.get_rank();
+        value_type my_parent = my_item_info.second.get_parent();
+
+        std::tie(my_parent, my_rank) = p_dset->walk_cache(my_parent, my_rank);
+        std::tie(other_parent, other_rank) =
+            p_dset->walk_cache(other_parent, other_rank);
 
         // Path splitting
         if (my_child != my_item) {
-          p_dset->async_visit(my_child, update_parent_lambda, my_parent);
+          p_dset->async_visit(my_child, update_parent_and_cache_lambda, my_item,
+                              my_parent, my_rank);
         }
 
         if (my_parent == other_parent || my_parent == other_item) {
@@ -304,8 +389,6 @@ class disjoint_set_impl {
                     "with (const value_type &, const value_type &) signature");
               }
 
-              // return;
-
               p_dset->async_visit(other_parent, resolve_merge_lambda, my_item,
                                   my_rank);
             } else {
@@ -345,7 +428,25 @@ class disjoint_set_impl {
       }
     };
 
-    async_visit(a, simul_parent_walk_functor(), a, b, b, -1, a, b, args...);
+    // Walk cache for initial items
+    value_type my_item   = a;
+    rank_type  my_rank   = -1;
+    value_type my_parent = a;
+
+    value_type other_item   = b;
+    rank_type  other_rank   = -1;
+    value_type other_parent = b;
+
+    std::tie(my_parent, my_rank)       = walk_cache(my_parent, my_rank);
+    std::tie(other_parent, other_rank) = walk_cache(other_parent, other_rank);
+
+    if (my_rank <= other_rank) {
+      async_visit(my_parent, simul_parent_walk_functor(), my_item, other_parent,
+                  other_item, other_rank, a, b, args...);
+    } else {
+      async_visit(other_parent, simul_parent_walk_functor(), other_item,
+                  my_parent, my_item, my_rank, a, b, args...);
+    }
   }
 
   void all_compress() {
@@ -590,6 +691,34 @@ class disjoint_set_impl {
 
   ygm::comm &comm() { return m_comm; }
 
+ private:
+  const std::pair<value_type, rank_type> walk_cache(const value_type &item,
+                                                    const rank_type  &r) {
+    const typename hash_cache::cache_entry *prev_cache_entry = nullptr;
+    const typename hash_cache::cache_entry *curr_cache_entry =
+        &m_cache.get_cache_entry(item);
+
+    // Don't walk cache if first item is wrong
+    if (curr_cache_entry->item != item || not curr_cache_entry->occupied ||
+        curr_cache_entry->item_info.get_rank() < r) {
+      return std::make_pair(item, r);
+    }
+
+    do {
+      prev_cache_entry = curr_cache_entry;
+      curr_cache_entry =
+          &m_cache.get_cache_entry(prev_cache_entry->item_info.get_parent());
+    } while (prev_cache_entry->item_info.get_parent() ==
+                 curr_cache_entry->item &&
+             curr_cache_entry->occupied &&
+             prev_cache_entry->item != curr_cache_entry->item &&
+             prev_cache_entry->item_info.get_rank() <=
+                 curr_cache_entry->item_info.get_rank());
+
+    return std::make_pair(prev_cache_entry->item_info.get_parent(),
+                          prev_cache_entry->item_info.get_rank());
+  }
+
  protected:
   disjoint_set_impl() = delete;
 
@@ -598,5 +727,6 @@ class disjoint_set_impl {
   parent_map_type   m_local_item_parent_map;
 
   ygm::stats_tracker m_stats;
+  hash_cache         m_cache;
 };
 }  // namespace ygm::container::detail
