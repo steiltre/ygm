@@ -88,6 +88,7 @@ class disjoint_set_impl {
       // rank is higher
       if (current_entry.occupied == false ||
           item_info.get_rank() >= current_entry.item_info.get_rank()) {
+        // m_stats.increment_counter<"successful_cache_additions">();
         current_entry.occupied  = true;
         current_entry.item      = item;
         current_entry.item_info = item_info;
@@ -112,7 +113,7 @@ class disjoint_set_impl {
   };
 
   disjoint_set_impl(ygm::comm &comm)
-      : m_comm(comm), pthis(this), m_stats(comm), m_cache(2048) {
+      : m_comm(comm), pthis(this), m_stats(m_comm), m_cache(2048) {
     pthis.check(m_comm);
   }
 
@@ -694,6 +695,7 @@ class disjoint_set_impl {
  private:
   const std::pair<value_type, rank_type> walk_cache(const value_type &item,
                                                     const rank_type  &r) {
+    m_stats.increment_counter<"cache_walks">();
     const typename hash_cache::cache_entry *prev_cache_entry = nullptr;
     const typename hash_cache::cache_entry *curr_cache_entry =
         &m_cache.get_cache_entry(item);
@@ -701,10 +703,12 @@ class disjoint_set_impl {
     // Don't walk cache if first item is wrong
     if (curr_cache_entry->item != item || not curr_cache_entry->occupied ||
         curr_cache_entry->item_info.get_rank() < r) {
+      m_stats.increment_counter<"cache_walk_early_returns">();
       return std::make_pair(item, r);
     }
 
     do {
+      m_stats.increment_counter<"cache_walk_steps">();
       prev_cache_entry = curr_cache_entry;
       curr_cache_entry =
           &m_cache.get_cache_entry(prev_cache_entry->item_info.get_parent());
