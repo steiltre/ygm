@@ -1,10 +1,7 @@
 .. _ygm-comm:
 
-:code:`ygm::comm` class reference.
-==================================
-
 Communicator Overview
-=====================
+*********************
 
 The communicator :code:`ygm::comm` is the central object in YGM.
 The communicator controls an interface to an MPI communicator, and its

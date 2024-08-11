@@ -7,7 +7,7 @@ YGM library documentation
 =====================================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Contents:
 
    getting_started
@@ -15,7 +15,7 @@ YGM library documentation
    ygm/container
 
 Documents for YGM developers
----------
+----------------------------
 
 .. toctree::
    :maxdepth: 1
