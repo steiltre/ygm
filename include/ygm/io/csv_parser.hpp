@@ -9,13 +9,14 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <ygm/container/detail/base_iteration.hpp>
 #include <ygm/io/detail/csv.hpp>
 #include <ygm/io/line_parser.hpp>
-#include <ygm/container/detail/base_iteration.hpp>
 
 namespace ygm::io {
 
-class csv_parser : public ygm::container::detail::base_iteration<csv_parser, std::tuple<std::vector<detail::csv_field>>> {
+class csv_parser : public ygm::container::detail::base_iteration_value<
+                       csv_parser, std::tuple<std::vector<detail::csv_field>>> {
  public:
   using for_all_args = std::tuple<std::vector<detail::csv_field>>;
 
