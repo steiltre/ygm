@@ -17,8 +17,9 @@ namespace detail {
  */
 class comm_router {
  public:
-  comm_router(const layout &l, const routing_type route = routing_type::NONE)
-      : m_layout(l), m_default_route(route) {}
+  comm_router(const layout &l, const detail::comm_environment &config,
+              const routing_type route = routing_type::NONE)
+      : m_layout(l), m_default_route(route), m_config(config) {}
 
   /**
    * @brief Calculates the next hop based on the given routing scheme and final
@@ -65,6 +66,27 @@ class comm_router {
           }
         }
         break;
+      case routing_type::RECT_NR:
+        if (m_layout.is_local(dest)) {
+          to_return = dest;
+        } else {
+          int my_row   = m_layout.node_id() / m_config.routing_groups;
+          int dest_row = m_layout.node_id(dest) / m_config.routing_groups;
+          if (my_row == dest_row) {
+            to_return = m_layout.strided_ranks()[m_layout.node_id(dest)];
+          } else {
+            int row_length =
+                m_layout.node_size() / m_config.routing_groups +
+                (m_layout.node_size() % m_config.routing_groups > 0);
+            // need to account for incomplete rows
+            int dest_row_length = std::min<int>(
+                row_length, m_layout.node_size() - dest_row * row_length);
+            int next_node =
+                dest_row * row_length + m_layout.node_id() % dest_row_length;
+            to_return = m_layout.strided_ranks()[next_node];
+          }
+        }
+        break;
       default:
         std::cerr << "Unknown routing type" << std::endl;
         return -1;
@@ -76,8 +98,9 @@ class comm_router {
   int next_hop(const int dest) const { return next_hop(dest, m_default_route); }
 
  private:
-  routing_type  m_default_route;
-  const layout &m_layout;
+  routing_type            m_default_route;
+  const layout           &m_layout;
+  const comm_environment &m_config;
 };
 
 }  // namespace detail

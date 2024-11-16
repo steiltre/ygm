@@ -14,7 +14,7 @@ namespace ygm {
 
 namespace detail {
 
-enum class routing_type { NONE, NR, NLNR };
+enum class routing_type { NONE, NR, NLNR, RECT_NR };
 
 /**
  * @brief Configuration enviornment for ygm::comm.
@@ -64,9 +64,14 @@ class comm_environment {
         routing = routing_type::NR;
       } else if (std::string(cc) == "NLNR") {
         routing = routing_type::NLNR;
+      } else if (std::string(cc) == "RECT_NR") {
+        routing = routing_type::RECT_NR;
       } else {
         throw std::runtime_error("comm_enviornment -- unknown routing type");
       }
+    }
+    if (const char* cc = std::getenv("YGM_COMM_ROUTING_GROUPS")) {
+      routing_groups = convert<int>(cc);
     }
   }
 
@@ -88,6 +93,9 @@ class comm_environment {
       case routing_type::NLNR:
         os << "NLNR\n";
         break;
+      case routing_type::RECT_NR:
+        os << "RECT_NR\n";
+        break;
     }
     os << "======================================\n";
   }
@@ -103,7 +111,8 @@ class comm_environment {
   size_t freq_issend               = 8;
   size_t send_buffer_free_list_len = 32;
 
-  routing_type routing = routing_type::NONE;
+  routing_type routing        = routing_type::NONE;
+  int          routing_groups = 16;
 
   bool welcome = false;
 };

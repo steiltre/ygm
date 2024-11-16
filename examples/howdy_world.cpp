@@ -21,5 +21,14 @@ int main(int argc, char** argv) {
                   std::string("Can you hear me now?"));
     }
   }
+
+  if (world.rank() == 5) {
+    for (int i = 0; i < world.size(); ++i) {
+      world.cout(
+          i, "\t",
+          world.router().next_hop(i, ygm::detail::routing_type::RECT_NR));
+    }
+  }
+
   return 0;
 }
