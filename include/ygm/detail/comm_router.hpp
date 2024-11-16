@@ -75,10 +75,7 @@ class comm_router {
           if (my_row == dest_row) {
             to_return = m_layout.strided_ranks()[m_layout.node_id(dest)];
           } else {
-            int row_length =
-                m_layout.node_size() / m_config.routing_groups +
-                (m_layout.node_size() % m_config.routing_groups > 0);
-            // need to account for incomplete rows
+            int row_length      = m_config.routing_groups;
             int dest_row_length = std::min<int>(
                 row_length, m_layout.node_size() - dest_row * row_length);
             int next_node =
