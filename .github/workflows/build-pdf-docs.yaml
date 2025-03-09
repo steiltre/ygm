@@ -30,6 +30,8 @@ jobs:
       run: |
         cp build/docs/sphinx/latex/ygm.pdf ./docs
     - uses: EndBug/add-and-commit@v9
+      permissions:
+        contents: [ read, write ]
       with:
         #author_name: YGM clang-format bot
         message: 'Committing docs changes'
