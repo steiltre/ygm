@@ -12,6 +12,12 @@ jobs:
       with:
         repository: ${{ github.event.pull_request.head.repo.full_name }}
         ref: ${{ github.event.pull_request.head.ref }}
+    - name: Update apt
+      run: |
+        sudo apt-get update
+    - name: Install dependencies
+      run: |
+        sudo apt-get install doxygen
     - name: make
       run: |
         mkdir build
