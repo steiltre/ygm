@@ -18,6 +18,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get install doxygen sphinx
+        pip install -r docs/sphinx/requirements.txt
     - name: make
       run: |
         mkdir build
