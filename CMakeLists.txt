@@ -20,8 +20,8 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 option(JUST_INSTALL_YGM_HEADERS "Install YGM header files without building anything" OFF)
 option(YGM_BUILD_TESTS "Build tests" OFF)
 option(YGM_BUILD_TOOLS "Build tools" OFF)
-option(YGM_DOCS "Adds targets for generating Doxygen and Sphinx documentation" OFF)
-option(YGM_RTD_ONLY "Run Cmake for only generating documentation for Read the Docs" OFF)
+option(YGM_BUILD_DOCS "Adds targets for generating Doxygen and Sphinx documentation" OFF)
+option(YGM_DOCS_ONLY "Run Cmake for only generating documentation (i.e. for Read the Docs)" OFF)
 option(YGM_REQUIRE_PARQUET "YGM requires Arrow Parquet." OFF)
 option(YGM_INSTALL_PARQUET "YGM installs Arrow Parquet if it is not found." OFF)
 
@@ -35,9 +35,9 @@ endif ()
 #
 # Doxygen and Read the Docs (RTD) Documentation
 #
-if (YGM_DOCS OR YGM_RTD_ONLY)
+if (YGM_BUILD_DOCS OR YGM_DOCS_ONLY)
     add_subdirectory(docs)
-    if (YGM_RTD_ONLY)
+    if (YGM_DOCS_ONLY)
         return()
     endif ()
 endif ()

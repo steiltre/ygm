@@ -48,7 +48,7 @@ def run_cmake_build(build_dir):
         wd = os.getcwd()
         os.chdir(build_dir)
         # Use the CMakeLists.txt file in the root directory
-        subprocess.run(["cmake", "../../", "-DYGM_RTD_ONLY=ON"], check=True)
+        subprocess.run(["cmake", "../../", "-DYGM_DOCS_ONLY=ON"], check=True)
         # Generate the doxygen xml files
         subprocess.run(["make", "doxygen"], check=True)
         # Back to the original working directory
