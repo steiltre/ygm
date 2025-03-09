@@ -1,0 +1,29 @@
+name: Build PDF Documentation
+
+on:
+  pull_request:
+    types: [ opened, reopened, synchronize ]
+
+jobs:
+  build_docs:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        repository: ${{ github.event.pull_request.head.repo.full_name }}
+        ref: ${{ github.event.pull_request.head.ref }}
+    - name: make
+      run: |
+        mkdir build
+        cd build
+        cmake ../ -DYGM_DOCS_ONLY=On
+        make sphinx-pdf
+    - name: Move PDF
+      run: |
+        cp build/docs/sphinx/latex/ygm.pdf ./docs
+    - uses: EndBug/add-and-commit@v9
+      with:
+        #author_name: YGM clang-format bot
+        message: 'Committing docs changes'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
