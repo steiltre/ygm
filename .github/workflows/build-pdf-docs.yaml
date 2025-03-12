@@ -2,12 +2,12 @@ name: Build PDF Documentation
 
 on:
   pull_request:
-    types: [ opened, reopened, synchronize ]
+    types:
+      - closed
 
 jobs:
   build_docs:
-    permissions:
-      contents: write
+    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -33,7 +33,7 @@ jobs:
         cp build/docs/sphinx/latex/ygm.pdf ./docs
     - uses: EndBug/add-and-commit@v9
       with:
-        #author_name: YGM clang-format bot
+        author_name: YGM-docs bot
         message: 'Committing docs changes'
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
