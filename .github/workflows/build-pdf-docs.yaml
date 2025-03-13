@@ -31,6 +31,6 @@ jobs:
     - uses: EndBug/add-and-commit@v9
       with:
         author_name: YGM-docs bot
-        message: 'Committing docs changes'
+        message: 'Generating and committing docs'
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
