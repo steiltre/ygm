@@ -1,4 +1,4 @@
-name: Build PDF Documentation
+name: Test Documentation Generation
 
 on:
   pull_request:
