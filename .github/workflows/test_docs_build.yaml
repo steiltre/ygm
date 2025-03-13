@@ -1,7 +1,10 @@
 name: Build PDF Documentation
 
 on:
-  pull_request
+  pull_request:
+    branches: [ master, '**-dev' ]
+  push:
+    branches: [ 'feature/**', 'hotfix/**']
 
 jobs:
   build_docs:
