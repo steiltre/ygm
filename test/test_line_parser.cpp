@@ -13,7 +13,7 @@
 namespace fs = std::filesystem;
 
 void test_line_parser_files(ygm::comm&, const std::vector<std::string>&);
-void test_line_parser_directory(ygm::comm& , const std::string& , size_t );
+void test_line_parser_directory(ygm::comm&, const std::string&, size_t);
 
 int main(int argc, char** argv) {
   ygm::comm world(&argc, &argv);
@@ -22,14 +22,14 @@ int main(int argc, char** argv) {
     test_line_parser_files(world, {"data/short.txt"});
     test_line_parser_files(world, {"data/loremipsum/loremipsum_0.txt"});
     test_line_parser_files(world, {"data/loremipsum/loremipsum_0.txt",
-                             "data/loremipsum/loremipsum_1.txt"});
+                                   "data/loremipsum/loremipsum_1.txt"});
     test_line_parser_files(world, {"data/loremipsum/loremipsum_0.txt",
-                             "data/loremipsum/loremipsum_1.txt",
-                             "data/loremipsum/loremipsum_2.txt"});
+                                   "data/loremipsum/loremipsum_1.txt",
+                                   "data/loremipsum/loremipsum_2.txt"});
     test_line_parser_files(world, {"data/loremipsum/loremipsum_0.txt",
-                             "data/loremipsum/loremipsum_1.txt",
-                             "data/loremipsum/loremipsum_2.txt",
-                             "data/loremipsum/loremipsum_3.txt"});
+                                   "data/loremipsum/loremipsum_1.txt",
+                                   "data/loremipsum/loremipsum_2.txt",
+                                   "data/loremipsum/loremipsum_3.txt"});
     test_line_parser_files(
         world,
         {"data/loremipsum/loremipsum_0.txt", "data/loremipsum/loremipsum_1.txt",
@@ -46,10 +46,17 @@ int main(int argc, char** argv) {
     test_line_parser_directory(world, "data/loremipsum/", 270);
   }
 
+  {
+    ygm::io::line_parser utf8_parser(world, {"data/utf8.txt"});
+    utf8_parser.for_all(
+        [](const auto& line) { std::cout << line << std::endl; });
+  }
+
   return 0;
 }
 
-void test_line_parser_files(ygm::comm& comm, const std::vector<std::string>& files) {
+void test_line_parser_files(ygm::comm&                      comm,
+                            const std::vector<std::string>& files) {
   //
   // Read in each line into a distributed set
   ygm::container::counting_set<std::string> line_set_to_test(comm);
@@ -73,13 +80,13 @@ void test_line_parser_files(ygm::comm& comm, const std::vector<std::string>& fil
   }
 
   YGM_ASSERT_RELEASE(line_set.size() == line_set_sequential.size());
-  //comm.cout0(line_set.size(), " =? ", line_set_to_test.size());
+  // comm.cout0(line_set.size(), " =? ", line_set_to_test.size());
   YGM_ASSERT_RELEASE(line_set.size() == line_set_to_test.size());
   // YGM_ASSERT_RELEASE(line_set == line_set_to_test);
 }
 
-
-void test_line_parser_directory(ygm::comm& comm, const std::string& dir, size_t unique_line_count) {
+void test_line_parser_directory(ygm::comm& comm, const std::string& dir,
+                                size_t unique_line_count) {
   //
   // Read in each line into a distributed set
   ygm::container::counting_set<std::string> line_set_to_test(comm);
@@ -88,5 +95,5 @@ void test_line_parser_directory(ygm::comm& comm, const std::string& dir, size_t 
     line_set_to_test.async_insert(line);
   });
 
-  YGM_ASSERT_RELEASE(unique_line_count == line_set_to_test.size());  
+  YGM_ASSERT_RELEASE(unique_line_count == line_set_to_test.size());
 }
