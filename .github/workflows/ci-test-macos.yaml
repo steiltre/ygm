@@ -6,13 +6,17 @@ on:
   push:
     branches: [ 'feature/**', 'hotfix/**']
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-test:
     strategy:
       fail-fast: false
       matrix:
         os: [macos-15]
-        compiler: [g++-13, clang-18]
+        compiler: [clang-18]
         mpi-type: [openmpi]
         build-type: [Release, Debug]
     runs-on: ${{ matrix.os }}
