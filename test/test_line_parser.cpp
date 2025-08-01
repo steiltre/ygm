@@ -14,6 +14,8 @@ namespace fs = std::filesystem;
 
 void test_line_parser_files(ygm::comm&, const std::vector<std::string>&);
 void test_line_parser_directory(ygm::comm&, const std::string&, size_t);
+template <typename StringType>
+void test_line_parser_unicode(ygm::comm&);
 
 int main(int argc, char** argv) {
   ygm::comm world(&argc, &argv);
@@ -47,9 +49,8 @@ int main(int argc, char** argv) {
   }
 
   {
-    ygm::io::line_parser utf8_parser(world, {"data/utf8.txt"});
-    utf8_parser.for_all(
-        [](const auto& line) { std::cout << line << std::endl; });
+    test_line_parser_unicode<std::string>(world);
+    test_line_parser_unicode<std::u32string>(world);
   }
 
   return 0;
@@ -96,4 +97,23 @@ void test_line_parser_directory(ygm::comm& comm, const std::string& dir,
   });
 
   YGM_ASSERT_RELEASE(unique_line_count == line_set_to_test.size());
+}
+
+template <typename StringType>
+void test_line_parser_unicode(ygm::comm& comm) {
+  std::array<size_t, 11> line_lengths;
+  if constexpr (std::is_same_v<typename StringType::value_type, char>) {
+    line_lengths = {5, 6, 3, 5, 4, 5, 6, 5, 4, 3, 4};
+  } else if constexpr (std::is_same_v<typename StringType::value_type,
+                                      char32_t>) {
+    line_lengths = {4, 4, 3, 4, 4, 4, 5, 5, 4, 1, 1};
+  }
+
+  ygm::io::line_parser<StringType> utf8_parser(comm, {"data/utf8.txt"});
+
+  size_t line_num{0};
+  utf8_parser.for_all([&line_lengths, &line_num](const auto& line) {
+    YGM_ASSERT_RELEASE(line.size() == line_lengths[line_num]);
+    ++line_num;
+  });
 }

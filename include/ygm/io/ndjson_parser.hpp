@@ -106,7 +106,7 @@ class ndjson_parser : public ygm::container::detail::base_iteration_value<
   }
 
  private:
-  line_parser m_lp;
+  line_parser<std::string> m_lp;
 
   size_t m_num_invalid_records{0};
 };
