@@ -50,7 +50,9 @@ int main(int argc, char** argv) {
 
   {
     test_line_parser_unicode<std::string>(world);
+#ifndef __APPLE_CC__
     test_line_parser_unicode<std::u32string>(world);
+#endif
   }
 
   return 0;
