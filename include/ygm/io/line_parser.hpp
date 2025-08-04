@@ -183,7 +183,7 @@ class line_parser : public ygm::container::detail::base_iteration_value<
       size_t bytes_begin = std::get<1>(fname);
       size_t bytes_end   = std::get<2>(fname);
       YGM_ASSERT_RELEASE(ifs.good());
-      ifs.imbue(std::locale::classic());
+      // ifs.imbue(std::locale::classic());
       StringType line;
       bool       first_line = false;
       // Throw away line containing bytes_begin as it was read by the previous
