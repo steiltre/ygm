@@ -857,8 +857,8 @@ inline void comm::flush_send_buffer(int dest) {
     size_t uncompressed_size = m_vec_send_buffers[dest].size();
 
     log(log_level::info,
-        "Compressed message of " + std::to_string(compressed_size) +
-            " bytes to " + std::to_string(uncompressed_size) +
+        "Compressed message of " + std::to_string(uncompressed_size) +
+            " bytes to " + std::to_string(compressed_size) +
             " bytes. Compression ratio: " +
             std::to_string(((float)uncompressed_size) / compressed_size));
 
