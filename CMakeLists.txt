@@ -141,6 +141,22 @@ if (YGM_INSTALL_PARQUET)
 endif ()
 
 #
+# zstd for message compression
+#
+if (NOT zstd_POPULATED)
+  set(ZSTD_BUILD_STATIC ON)
+  set(ZSTD_BUILD_SHARED OFF)
+  FetchContent_Declare(
+    zstd
+    GIT_REPOSITORY https://github.com/facebook/zstd.git
+    GIT_TAG v1.5.7
+    SOURCE_SUBDIR build/cmake
+  )
+  FetchContent_MakeAvailable(zstd)
+endif ()
+#find_package(zstd REQUIRED)
+
+#
 # Create the YGM target library
 #
 add_library(ygm INTERFACE)
@@ -153,7 +169,7 @@ target_include_directories(
 target_link_libraries(
     ygm
     PUBLIC
-    INTERFACE MPI::MPI_CXX Threads::Threads cereal spdlog_header_only Boost::container Boost::unordered Boost::static_string Boost::json
+    INTERFACE MPI::MPI_CXX Threads::Threads libzstd_static cereal spdlog_header_only Boost::container Boost::unordered Boost::static_string Boost::json
 )
 
 if (YGM_DONT_USE_MREMAP)
