@@ -10,7 +10,8 @@
 int main() {
   YGM_ASSERT_MPI(MPI_Init(nullptr, nullptr));
 
-  std::vector<std::string> routing_schemes{"NONE", "NR", "NLNR"};
+  setenv("YGM_COMM_VIRTUAL_NODE_SIZE", "2", 1);
+  std::vector<std::string> routing_schemes{"NONE", "NR", "NLNR", "VIRTUAL_NR"};
   for (const auto& routing_scheme : routing_schemes) {
     setenv("YGM_COMM_ROUTING", routing_scheme.c_str(), 1);
 

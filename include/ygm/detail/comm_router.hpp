@@ -17,8 +17,9 @@ namespace detail {
  */
 class comm_router {
  public:
-  comm_router(const layout &l, const routing_type route = routing_type::NONE)
-      : m_layout(l), m_default_route(route) {}
+  comm_router(const layout &l, const comm_environment &config,
+              const routing_type route = routing_type::NONE)
+      : m_layout(l), m_default_route(route), m_config(config) {}
 
   /**
    * @brief Calculates the next hop based on the given routing scheme and final
@@ -65,6 +66,18 @@ class comm_router {
           }
         }
         break;
+      case routing_type::VIRTUAL_NR: {
+        int current_virtual_node = m_layout.rank() / m_config.virtual_node_size;
+        int dest_virtual_node    = dest / m_config.virtual_node_size;
+        if (current_virtual_node == dest_virtual_node) {
+          to_return = dest;
+        } else {
+          int current_virtual_offset =
+              m_layout.rank() % m_config.virtual_node_size;
+          to_return = dest_virtual_node * m_config.virtual_node_size +
+                      current_virtual_offset;
+        }
+      } break;
       default:
         std::cerr << "Unknown routing type" << std::endl;
         return -1;
@@ -76,8 +89,9 @@ class comm_router {
   int next_hop(const int dest) const { return next_hop(dest, m_default_route); }
 
  private:
-  const layout &m_layout;
-  routing_type  m_default_route;
+  const layout    &m_layout;
+  routing_type     m_default_route;
+  comm_environment m_config;
 };
 
 }  // namespace detail

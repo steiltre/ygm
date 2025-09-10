@@ -17,7 +17,7 @@ namespace ygm {
 
 namespace detail {
 
-enum class routing_type { NONE, NR, NLNR };
+enum class routing_type { NONE, NR, NLNR, VIRTUAL_NR };
 
 inline size_t round_to_nearest_kb(float number) {
   return std::ceil(static_cast<float>(number) / 1024) * 1024;
@@ -53,9 +53,15 @@ class comm_environment {
         routing = routing_type::NR;
       } else if (std::string(cc) == "NLNR") {
         routing = routing_type::NLNR;
+      } else if (std::string(cc) == "VIRTUAL_NR") {
+        routing = routing_type::VIRTUAL_NR;
       } else {
         throw std::runtime_error("comm_environment -- unknown routing type");
       }
+    }
+
+    if (const char* cc = std::getenv("YGM_COMM_VIRTUAL_NODE_SIZE")) {
+      virtual_node_size = convert<uint32_t>(cc);
     }
 
     // Calculate local and remote buffer sizes based on heuristics for the
@@ -86,6 +92,10 @@ class comm_environment {
         local_buffer_size =
             round_to_nearest_kb(2 * (float)total_buffer_size / 3);
         remote_buffer_size = round_to_nearest_kb((float)total_buffer_size / 3);
+        break;
+      case routing_type::VIRTUAL_NR:
+        local_buffer_size  = round_to_nearest_kb((float)total_buffer_size / 2);
+        remote_buffer_size = local_buffer_size;
         break;
     }
     if (const char* cc = std::getenv("YGM_COMM_LOCAL_BUFFER_SIZE_KB")) {
@@ -174,6 +184,9 @@ class comm_environment {
       case routing_type::NLNR:
         os << "NLNR\n";
         break;
+      case routing_type::VIRTUAL_NR:
+        os << "VIRTUAL_NR\n";
+        break;
     }
     os << "YGM_COMM_TRACE_YGM          = " << trace_ygm << "\n";
     os << "YGM_COMM_TRACE_MPI          = " << trace_mpi << "\n";
@@ -216,7 +229,8 @@ class comm_environment {
   size_t freq_issend               = 8;
   size_t send_buffer_free_list_len = 32;
 
-  routing_type routing = routing_type::NONE;
+  routing_type routing           = routing_type::NONE;
+  uint32_t     virtual_node_size = 16;
 
   std::string default_log_path  = "./log/ygm_logs_";
   log_level   default_log_level = log_level::off;
