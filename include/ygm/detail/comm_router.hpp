@@ -76,6 +76,13 @@ class comm_router {
               m_layout.rank() % m_config.virtual_node_size;
           to_return = dest_virtual_node * m_config.virtual_node_size +
                       current_virtual_offset;
+          if (to_return >=
+              m_layout
+                  .size()) {  // Account for last virtual node not being "full"
+            int last_node_size = m_layout.size() % m_config.virtual_node_size;
+            to_return = dest_virtual_node * m_config.virtual_node_size +
+                        (m_layout.rank() % last_node_size);
+          }
         }
       } break;
       default:

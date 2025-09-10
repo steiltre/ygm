@@ -10,7 +10,7 @@
 int main() {
   YGM_ASSERT_MPI(MPI_Init(nullptr, nullptr));
 
-  setenv("YGM_COMM_VIRTUAL_NODE_SIZE", "2", 1);
+  setenv("YGM_COMM_VIRTUAL_NODE_SIZE", "3", 1);
   std::vector<std::string> routing_schemes{"NONE", "NR", "NLNR", "VIRTUAL_NR"};
   for (const auto& routing_scheme : routing_schemes) {
     setenv("YGM_COMM_ROUTING", routing_scheme.c_str(), 1);
@@ -31,15 +31,13 @@ int main() {
       YGM_ASSERT_RELEASE(counter == 1);
     }
 
-    /*
     //
     // Test all ranks async to all others
     {
       size_t counter{};
       auto   pcounter = world.make_ygm_ptr(counter);
       for (int dest = 0; dest < world.size(); ++dest) {
-        world.async(
-            dest, [](auto pcounter) { (*pcounter)++; }, pcounter);
+        world.async(dest, [](auto pcounter) { (*pcounter)++; }, pcounter);
       }
       world.barrier();
       YGM_ASSERT_RELEASE(counter == (size_t)world.size());
@@ -67,7 +65,7 @@ int main() {
       }
 
       world.barrier();
-      YGM_ASSERT_RELEASE(counter == num_bcasts * world.size());
+      YGM_ASSERT_RELEASE(counter == size_t(num_bcasts * world.size()));
     }
 
     //
@@ -102,25 +100,31 @@ int main() {
       YGM_ASSERT_RELEASE(min == 0);
 
       auto sum = ygm::sum(size_t(world.rank()), world);
-      YGM_ASSERT_RELEASE(sum ==
-                     (((size_t)world.size() - 1) * (size_t)world.size()) / 2);
+      YGM_ASSERT_RELEASE(
+          sum == (((size_t)world.size() - 1) * (size_t)world.size()) / 2);
 
       size_t id  = world.rank();
-      auto   red = ygm::all_reduce(id, [](size_t a, size_t b) {
-        if (a < b) {
-          return a;
-        } else {
-          return b;
-        }
-      }, world);
+      auto   red = ygm::all_reduce(
+          id,
+          [](size_t a, size_t b) {
+            if (a < b) {
+              return a;
+            } else {
+              return b;
+            }
+          },
+          world);
       YGM_ASSERT_RELEASE(red == 0);
-      auto red2 = ygm::all_reduce(id, [](size_t a, size_t b) {
-        if (a > b) {
-          return a;
-        } else {
-          return b;
-        }
-      }, world);
+      auto red2 = ygm::all_reduce(
+          id,
+          [](size_t a, size_t b) {
+            if (a > b) {
+              return a;
+            } else {
+              return b;
+            }
+          },
+          world);
       YGM_ASSERT_RELEASE(red2 == (size_t)world.size() - 1);
     }
 
@@ -134,7 +138,6 @@ int main() {
       world.barrier();
       YGM_ASSERT_RELEASE(done);
     }
-    */
   }
 
   YGM_ASSERT_MPI(MPI_Finalize());
