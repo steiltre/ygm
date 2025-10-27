@@ -102,6 +102,9 @@ class comm_environment {
                      "value of"
                   << local_buffer_size << "\n";
     }
+    if (const char* cc = std::getenv("YGM_DATAGRAM_SIZE_KB")) {
+      max_datagram_size = convert<size_t>(cc) * 1024;
+    }
     if (const char* cc = std::getenv("YGM_COMM_NUM_IRECVS")) {
       num_irecvs = convert<size_t>(cc);
     }
@@ -208,6 +211,9 @@ class comm_environment {
   size_t total_buffer_size = 16 * 1024 * 1024;
   size_t local_buffer_size;
   size_t remote_buffer_size;
+
+  size_t max_datagram_size =
+      64 * 1024;  // Matches max UDP packet size (ignoring header info)
 
   size_t irecv_size = 1024 * 1024 * 1024;
   size_t num_irecvs = 8;

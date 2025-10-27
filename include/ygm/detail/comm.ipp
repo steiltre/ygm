@@ -1282,9 +1282,7 @@ inline size_t comm::pack_lambda_generic(ygm::detail::byte_vector &packed,
 
   uint16_t lid = m_lambda_map.register_lambda(remote_dispatch_lambda);
 
-  {
-    packed.push_bytes(&lid, sizeof(lid));
-  }
+  { packed.push_bytes(&lid, sizeof(lid)); }
 
   if constexpr (!std::is_empty<RemoteLogicLambda>::value) {
     packed.push_bytes(&rll, sizeof(RemoteLogicLambda));
