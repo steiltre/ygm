@@ -192,9 +192,9 @@ inline comm::~comm() {
   YGM_ASSERT_RELEASE(MPI_Barrier(m_comm_async) == MPI_SUCCESS);
 
   YGM_ASSERT_RELEASE(m_send_queue.empty());
-  YGM_ASSERT_RELEASE(m_send_local_dest_queue.empty());
+  YGM_ASSERT_RELEASE(m_send_local_dest_list.empty());
   YGM_ASSERT_RELEASE(m_send_local_buffer_bytes == 0);
-  YGM_ASSERT_RELEASE(m_send_remote_dest_queue.empty());
+  YGM_ASSERT_RELEASE(m_send_remote_dest_list.empty());
   YGM_ASSERT_RELEASE(m_send_remote_buffer_bytes == 0);
   YGM_ASSERT_RELEASE(m_pending_isend_bytes == 0);
 
@@ -245,11 +245,11 @@ inline void comm::async(int dest, AsyncFunction &&fn, const SendArgs &...args) {
   // add data to the to dest buffer
   if (m_vec_send_buffers[next_dest].empty()) {
     if (local) {
-      m_send_local_dest_queue.push_back(next_dest);
+      m_send_local_dest_list.push_back(next_dest);
       m_vec_send_buffers[next_dest].reserve(config.local_buffer_size /
                                             m_layout.local_size());
     } else {
-      m_send_remote_dest_queue.push_back(next_dest);
+      m_send_remote_dest_list.push_back(next_dest);
       m_vec_send_buffers[next_dest].reserve(config.remote_buffer_size /
                                             m_layout.node_size());
     }
@@ -269,6 +269,27 @@ inline void comm::async(int dest, AsyncFunction &&fn, const SendArgs &...args) {
   uint32_t bytes = pack_lambda(m_vec_send_buffers[next_dest],
                                std::forward<AsyncFunction>(fn),
                                std::forward<const SendArgs>(args)...);
+
+  // Send full datagram
+  if (m_vec_send_buffers[next_dest].size() > config.max_datagram_size) {
+    m_vec_send_buffers[next_dest].resize(m_vec_send_buffers[next_dest].size() -
+                                         bytes);
+    size_t num_removed;
+    if (local) {
+      num_removed = m_send_local_dest_list.remove(dest);
+    } else {
+      num_removed = m_send_remote_dest_list.remove(dest);
+    }
+    YGM_ASSERT_RELEASE(num_removed == 1);
+
+    flush_send_buffer(next_dest);
+
+    // Reserialize message and put in send buffer after sending full datagram
+    bytes = pack_lambda(m_vec_send_buffers[next_dest],
+                        std::forward<AsyncFunction>(fn),
+                        std::forward<const SendArgs>(args)...);
+  }
+
   if (local) {
     m_send_local_buffer_bytes += bytes;
   } else {
@@ -451,8 +472,8 @@ inline bool comm::priv_barrier(bool local_full) {
   }
 
   YGM_ASSERT_RELEASE(m_pre_barrier_callbacks.empty());
-  YGM_ASSERT_RELEASE(m_send_local_dest_queue.empty());
-  YGM_ASSERT_RELEASE(m_send_remote_dest_queue.empty());
+  YGM_ASSERT_RELEASE(m_send_local_dest_list.empty());
+  YGM_ASSERT_RELEASE(m_send_remote_dest_list.empty());
 
   bool to_return = false;
   YGM_ASSERT_MPI(MPI_Allreduce(&local_full, &to_return, 1, MPI_C_BOOL, MPI_LAND,
@@ -890,12 +911,12 @@ inline void comm::flush_send_buffer(int dest) {
 /**
  * @brief Flushes first queued buffer of messages
  *
- * @param dest_queue Queue of destinations to send buffered messages to
+ * @param dest_list Queue of destinations to send buffered messages to
  */
-inline void comm::flush_next_send(std::deque<int> &dest_queue) {
-  if (!dest_queue.empty()) {
-    int dest = dest_queue.front();
-    dest_queue.pop_front();
+inline void comm::flush_next_send(std::list<int> &dest_list) {
+  if (!dest_list.empty()) {
+    int dest = dest_list.front();
+    dest_list.pop_front();
     flush_send_buffer(dest);
   }
 }
@@ -967,11 +988,11 @@ inline void comm::local_progress() {
   if (not m_in_process_receive_queue) {
     process_receive_queue();
   }
-  if (not m_send_local_dest_queue.empty()) {
-    flush_next_send(m_send_local_dest_queue);
+  if (not m_send_local_dest_list.empty()) {
+    flush_next_send(m_send_local_dest_list);
   }
-  if (not m_send_remote_dest_queue.empty()) {
-    flush_next_send(m_send_remote_dest_queue);
+  if (not m_send_remote_dest_list.empty()) {
+    flush_next_send(m_send_remote_dest_list);
   }
 }
 
@@ -1023,14 +1044,14 @@ inline void comm::flush_all_local_and_process_incoming() {
 
     //
     //  Flush each send buffer
-    while (!m_send_local_dest_queue.empty()) {
+    while (!m_send_local_dest_list.empty()) {
       did_something = true;
-      flush_next_send(m_send_local_dest_queue);
+      flush_next_send(m_send_local_dest_list);
       process_receive_queue();
     }
-    while (!m_send_remote_dest_queue.empty()) {
+    while (!m_send_remote_dest_list.empty()) {
       did_something = true;
-      flush_next_send(m_send_remote_dest_queue);
+      flush_next_send(m_send_remote_dest_list);
       process_receive_queue();
     }
 
@@ -1048,12 +1069,12 @@ inline void comm::flush_all_local_and_process_incoming() {
  */
 inline void comm::flush_to_capacity() {
   while (m_send_local_buffer_bytes > config.local_buffer_size) {
-    YGM_ASSERT_DEBUG(!m_send_local_dest_queue.empty());
-    flush_next_send(m_send_local_dest_queue);
+    YGM_ASSERT_DEBUG(!m_send_local_dest_list.empty());
+    flush_next_send(m_send_local_dest_list);
   }
   while (m_send_remote_buffer_bytes > config.remote_buffer_size) {
-    YGM_ASSERT_DEBUG(!m_send_remote_dest_queue.empty());
-    flush_next_send(m_send_remote_dest_queue);
+    YGM_ASSERT_DEBUG(!m_send_remote_dest_list.empty());
+    flush_next_send(m_send_remote_dest_list);
   }
 }
 
@@ -1282,7 +1303,9 @@ inline size_t comm::pack_lambda_generic(ygm::detail::byte_vector &packed,
 
   uint16_t lid = m_lambda_map.register_lambda(remote_dispatch_lambda);
 
-  { packed.push_bytes(&lid, sizeof(lid)); }
+  {
+    packed.push_bytes(&lid, sizeof(lid));
+  }
 
   if constexpr (!std::is_empty<RemoteLogicLambda>::value) {
     packed.push_bytes(&rll, sizeof(RemoteLogicLambda));
@@ -1316,11 +1339,11 @@ inline void comm::queue_message_bytes(const ygm::detail::byte_vector &packed,
   // add data to the dest buffer
   if (m_vec_send_buffers[dest].empty()) {
     if (local) {
-      m_send_local_dest_queue.push_back(dest);
+      m_send_local_dest_list.push_back(dest);
       m_vec_send_buffers[dest].reserve(config.local_buffer_size /
                                        m_layout.local_size());
     } else {
-      m_send_remote_dest_queue.push_back(dest);
+      m_send_remote_dest_list.push_back(dest);
       m_vec_send_buffers[dest].reserve(config.remote_buffer_size /
                                        m_layout.node_size());
     }
@@ -1385,9 +1408,9 @@ inline void comm::handle_next_receive(
 
         if (m_vec_send_buffers[next_dest].empty()) {
           if (local) {
-            m_send_local_dest_queue.push_back(next_dest);
+            m_send_local_dest_list.push_back(next_dest);
           } else {
-            m_send_remote_dest_queue.push_back(next_dest);
+            m_send_remote_dest_list.push_back(next_dest);
           }
         }
 
