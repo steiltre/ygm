@@ -277,8 +277,14 @@ inline void comm::async(int dest, AsyncFunction &&fn, const SendArgs &...args) {
     size_t num_removed;
     if (local) {
       num_removed = m_send_local_dest_list.remove(dest);
+      m_send_local_dest_list.push_back(next_dest);
+      m_vec_send_buffers[next_dest].reserve(config.local_buffer_size /
+                                            m_layout.local_size());
     } else {
       num_removed = m_send_remote_dest_list.remove(dest);
+      m_send_remote_dest_list.push_back(next_dest);
+      m_vec_send_buffers[next_dest].reserve(config.remote_buffer_size /
+                                            m_layout.node_size());
     }
     YGM_ASSERT_RELEASE(num_removed == 1);
 
