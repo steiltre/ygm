@@ -312,9 +312,6 @@ inline void comm::async(int dest, AsyncFunction &&fn, const SendArgs &...args) {
   if (m_trace_ygm) {
     m_tracer.trace_ygm_async(m_tracer.get_next_message_id(), dest, bytes);
   }
-
-  // Check if send buffer capacity has been exceeded
-  flush_to_capacity();
 }
 
 /**
