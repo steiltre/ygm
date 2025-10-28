@@ -102,7 +102,7 @@ class comm_environment {
                      "value of"
                   << local_buffer_size << "\n";
     }
-    if (const char* cc = std::getenv("YGM_DATAGRAM_SIZE_KB")) {
+    if (const char* cc = std::getenv("YGM_COMM_DATAGRAM_SIZE_KB")) {
       max_datagram_size = convert<size_t>(cc) * 1024;
     }
     if (const char* cc = std::getenv("YGM_COMM_NUM_IRECVS")) {
