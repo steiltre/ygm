@@ -92,8 +92,10 @@ if (NOT cereal_POPULATED)
         set(JUST_INSTALL_CEREAL TRUE)
         FetchContent_Declare(
             cereal
-            GIT_REPOSITORY ${CEREAL_FETCH_GIT}
-            GIT_TAG v1.3.2
+            #GIT_REPOSITORY ${CEREAL_FETCH_GIT}
+            #GIT_TAG v1.3.2
+            GIT_REPOSITORY /home/trevor/git_repos/github/cereal
+            GIT_TAG template_fix
         )
         FetchContent_MakeAvailable(cereal)
     endif ()
@@ -120,7 +122,7 @@ if (NOT spdlog_POPULATED)
     FetchContent_Declare(
         spdlog
         GIT_REPOSITORY ${SPDLOG_FETCH_GIT}
-        GIT_TAG v1.14.1
+        GIT_TAG v1.16.0
     )
     FetchContent_MakeAvailable(spdlog)
 endif ()
