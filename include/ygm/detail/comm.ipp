@@ -1193,6 +1193,11 @@ inline void comm::pack_lambda_broadcast(Lambda &&l, const PackArgs &...args) {
           c->pack_lambda_generic(packed_msg, l, local_dispatch_lambda, ta);
 
           for (auto dest : c->layout().local_ranks()) {
+            if (packed_msg.size() + c->m_vec_send_buffers[dest].size() >
+                c->config.max_datagram_size) {
+              c->flush_send_buffer(dest);
+            }
+
             if (dest != c->layout().rank()) {
               c->queue_message_bytes(packed_msg, dest);
             }
@@ -1229,6 +1234,10 @@ inline void comm::pack_lambda_broadcast(Lambda &&l, const PackArgs &...args) {
           break;
         }
         if (!c->layout().is_local(curr_partner)) {
+          if (packed_msg.size() + c->m_vec_send_buffers[curr_partner].size() >
+              c->config.max_datagram_size) {
+            c->flush_send_buffer(curr_partner);
+          }
           c->queue_message_bytes(packed_msg, curr_partner);
         }
 
@@ -1249,6 +1258,10 @@ inline void comm::pack_lambda_broadcast(Lambda &&l, const PackArgs &...args) {
 
   // Initial send to all local ranks
   for (auto dest : layout().local_ranks()) {
+    if (packed_msg.size() + m_vec_send_buffers[dest].size() >
+        config.max_datagram_size) {
+      flush_send_buffer(dest);
+    }
     queue_message_bytes(packed_msg, dest);
   }
 }
