@@ -502,5 +502,38 @@ int main(int argc, char** argv) {
     YGM_ASSERT_RELEASE(iset.size() == 0);
     YGM_ASSERT_RELEASE(iset2.size() == size_t(2 * size));
   }
+
+  //
+  // Test gather_values
+  {
+    ygm::container::set<int> iset(world);
+    int                      size = 32;
+
+    if (world.rank0()) {
+      for (int i = 0; i < size; ++i) {
+        iset.async_insert(i);
+      }
+    }
+    world.barrier();
+
+    YGM_ASSERT_RELEASE(iset.size() == size_t(size));
+
+    std::vector<int> to_gather;
+    std::set<int>    will_find;
+    for (int i = 0; i < size; ++i) {
+      int to_add = 2 * i + 3 * world.rank();
+      to_gather.push_back(to_add);
+      if (to_add < size) {
+        will_find.insert(to_add);
+      }
+    }
+
+    std::set<int> gathered_vals = iset.gather_values(to_gather);
+    YGM_ASSERT_RELEASE(gathered_vals.size() == will_find.size());
+
+    for (const auto found : gathered_vals) {
+      YGM_ASSERT_RELEASE(will_find.count(found) == 1);
+    }
+  }
   return 0;
 }

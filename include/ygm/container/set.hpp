@@ -47,6 +47,10 @@ class set
   using iterator       = typename local_container_type::iterator;
   using const_iterator = typename local_container_type::const_iterator;
 
+  // Pull in async_contains for use within the set
+  using detail::base_async_contains<set<Value>,
+                                    std::tuple<Value>>::async_contains;
+
   /**
    * @brief Set constructor
    *
@@ -270,6 +274,36 @@ class set
   void local_for_all(Function &&fn) const {
     std::for_each(m_local_set.cbegin(), m_local_set.cend(),
                   std::forward<Function>(fn));
+  }
+
+  /**
+   * @brief Collective operation to look up items that exist within set
+   *
+   * @param values Values local rank wants to look up in set
+   * @return `std::set` of provided values that exist within the YGM set
+   */
+  template <typename STLValueContainer>
+  std::set<value_type> gather_values(const STLValueContainer &values) {
+    std::set<value_type>         to_return;
+    static std::set<value_type> *sp_to_return;
+    sp_to_return = &to_return;
+
+    auto fetcher = [](auto pset, bool exists, const value_type &val, int from) {
+      auto returner = [](const value_type &val) { sp_to_return->insert(val); };
+
+      if (exists) {
+        pset->comm().async(from, returner, val);
+      }
+    };
+
+    m_comm.barrier();
+    for (const auto &val : values) {
+      async_contains(val, fetcher, m_comm.rank());
+    }
+    m_comm.barrier();
+
+    sp_to_return = nullptr;
+    return to_return;
   }
 
   /**
