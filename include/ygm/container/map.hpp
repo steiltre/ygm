@@ -425,10 +425,10 @@ class map
   }
 
   /**
-   * @brief Collective operation to look up item counts from each rank
+   * @brief Collective operation to look up key-value pairs from each rank
    *
-   * @param keys Keys local rank wants to collect counts for
-   * @return `std::map` of provided keys and their counts
+   * @param keys Keys local rank wants to collect values for
+   * @return `std::map` of provided keys and their values
    */
   template <typename STLKeyContainer>
   std::map<key_type, mapped_type> gather_keys(const STLKeyContainer& keys) {
