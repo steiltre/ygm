@@ -6,5 +6,5 @@
 #include <string>
 
 namespace ygm {
-static const std::string ygm_version("v0.9-dev");
+static const std::string ygm_version("v0.9");
 }
