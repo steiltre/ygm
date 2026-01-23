@@ -11,7 +11,7 @@ functionality can be safely included in user programs, but is often already incl
 can be used within YGM.
 
 :code:`ygm::utility::timer`
-=====================
+===========================
 
 The `ygm::utility::timer` class starts a very simple timer using `MPI_Wtime`. It includes `elapsed()` and `reset()`
 methods for checking the time since the timer has been started and resetting the start time of a timer, respectively.
@@ -28,7 +28,7 @@ Typical use of the `ygm::utility::timer` is:
   world.cout0("Time: ", t.elapsed());
 
 ``ygm::utility::progress_indicator``
-==================================
+====================================
 
 The `ygm::utility::progress_indicator` asynchronously tracks progress through a calculation across all processes, with
 each process periodically sending updates that are printed by rank 0. The `progress_indicator` prints the total number
