@@ -21,7 +21,7 @@ endif ()
 # ---------------------------------------------------------------------------- #
 project(
     ygm
-    VERSION 0.9
+    VERSION 0.10
     DESCRIPTION "HPC Communication Library"
     LANGUAGES CXX
 )
