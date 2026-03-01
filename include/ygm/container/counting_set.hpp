@@ -89,9 +89,9 @@ class counting_set
    * @param cont STL container containing values to count
    */
   template <typename STLContainer>
-  counting_set(ygm::comm &comm, const STLContainer &cont)
-    requires detail::STLContainer<STLContainer> &&
-                 std::convertible_to<typename STLContainer::value_type, Key>
+  counting_set(ygm::comm &comm, const STLContainer &cont) requires
+      detail::STLContainer<STLContainer> &&
+      std::convertible_to<typename STLContainer::value_type, Key>
       : m_comm(comm), pthis(this), m_map(comm), partitioner(m_map.partitioner) {
     m_comm.log(log_level::info, "Creating ygm::container::counting_set");
     pthis.check(m_comm);
@@ -110,9 +110,9 @@ class counting_set
    * @param yc YGM container containing values to count
    */
   template <typename YGMContainer>
-  counting_set(ygm::comm &comm, const YGMContainer &yc)
-    requires detail::HasForAll<YGMContainer> &&
-                 detail::SingleItemTuple<typename YGMContainer::for_all_args>
+  counting_set(ygm::comm &comm, const YGMContainer &yc) requires
+      detail::HasForAll<YGMContainer> &&
+      detail::SingleItemTuple<typename YGMContainer::for_all_args>
       : m_comm(comm), pthis(this), m_map(comm), partitioner(m_map.partitioner) {
     m_comm.log(log_level::info, "Creating ygm::container::counting_set");
     pthis.check(m_comm);
@@ -353,6 +353,7 @@ class counting_set
    */
   std::map<key_type, mapped_type> gather_keys(
       const std::vector<key_type> &keys) {
+    m_comm.barrier();
     return m_map.gather_keys(keys);
   }
 
