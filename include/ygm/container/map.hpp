@@ -433,13 +433,14 @@ class map
   template <typename STLKeyContainer>
   std::map<key_type, mapped_type> gather_keys(const STLKeyContainer& keys) {
     std::map<key_type, mapped_type>         to_return;
-    static std::map<key_type, mapped_type>& sto_return = to_return;
+    static std::map<key_type, mapped_type>* sto_return;
+    sto_return = &to_return;
 
     auto fetcher = [](auto pcomm, int from, const key_type& key, auto pmap) {
       auto returner = [](const key_type&                 key,
                          const std::vector<mapped_type>& values) {
         for (const auto& v : values) {
-          sto_return.insert(std::make_pair(key, v));
+          sto_return->insert(std::make_pair(key, v));
         }
       };
       auto values = pmap->local_get(key);

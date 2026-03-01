@@ -353,7 +353,6 @@ class counting_set
    */
   std::map<key_type, mapped_type> gather_keys(
       const std::vector<key_type> &keys) {
-    m_comm.barrier();
     return m_map.gather_keys(keys);
   }
 
