@@ -67,6 +67,7 @@ int main(int argc, char **argv) {
     YGM_ASSERT_RELEASE(cset.size() == 3);
 
     auto count_map = cset.gather_keys({"dog", "cat", "apple"});
+    world.cout() << "dog: " << count_map["dog"] << std::endl;
     YGM_ASSERT_RELEASE(count_map["dog"] == (size_t)world.size());
     YGM_ASSERT_RELEASE(count_map["apple"] == (size_t)world.size());
     YGM_ASSERT_RELEASE(cset.count("cat") == 0);
