@@ -245,12 +245,12 @@ inline void comm::async(int dest, AsyncFunction &&fn, const SendArgs &...args) {
   // add data to the to dest buffer
   if (m_vec_send_buffers[next_dest].empty()) {
     if (local) {
-      m_send_local_dest_list.push_back(next_dest);
+      // m_send_local_dest_list.push_back(next_dest);
       m_vec_send_buffers[next_dest].reserve(
           2 * config.max_datagram_size);  // Reserve double datagram size for
                                           // serialization
     } else {
-      m_send_remote_dest_list.push_back(next_dest);
+      // m_send_remote_dest_list.push_back(next_dest);
       m_vec_send_buffers[next_dest].reserve(2 * config.max_datagram_size);
     }
   }
@@ -1048,6 +1048,7 @@ inline void comm::flush_all_local_and_process_incoming() {
 
     //
     //  Flush each send buffer
+    /*
     while (!m_send_local_dest_list.empty()) {
       did_something = true;
       flush_next_send(m_send_local_dest_list);
@@ -1057,6 +1058,17 @@ inline void comm::flush_all_local_and_process_incoming() {
       did_something = true;
       flush_next_send(m_send_remote_dest_list);
       process_receive_queue();
+    }
+    */
+    bool sent_message = true;
+    while (sent_message) {
+      sent_message = false;
+      for (int i = 0; i < size(); ++i) {
+        if (m_vec_send_buffers[i].size() > 0) {
+          flush_send_buffer(i);
+          sent_message = true;
+        }
+      }
     }
 
     //
@@ -1356,10 +1368,10 @@ inline void comm::queue_message_bytes(const ygm::detail::byte_vector &packed,
   // add data to the dest buffer
   if (m_vec_send_buffers[dest].empty()) {
     if (local) {
-      m_send_local_dest_list.push_back(dest);
+      // m_send_local_dest_list.push_back(dest);
       m_vec_send_buffers[dest].reserve(2 * config.max_datagram_size);
     } else {
-      m_send_remote_dest_list.push_back(dest);
+      // m_send_remote_dest_list.push_back(dest);
       m_vec_send_buffers[dest].reserve(2 * config.max_datagram_size);
     }
   }
@@ -1423,9 +1435,11 @@ inline void comm::handle_next_receive(
 
         if (m_vec_send_buffers[next_dest].empty()) {
           if (local) {
-            m_send_local_dest_list.push_back(next_dest);
+            // m_send_local_dest_list.push_back(next_dest);
+            m_vec_send_buffers[next_dest].reserve(2 * config.max_datagram_size);
           } else {
-            m_send_remote_dest_list.push_back(next_dest);
+            // m_send_remote_dest_list.push_back(next_dest);
+            m_vec_send_buffers[next_dest].reserve(2 * config.max_datagram_size);
           }
         }
 
