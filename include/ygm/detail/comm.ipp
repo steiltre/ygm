@@ -274,19 +274,19 @@ inline void comm::async(int dest, AsyncFunction &&fn, const SendArgs &...args) {
   if (m_vec_send_buffers[next_dest].size() > config.max_datagram_size) {
     m_vec_send_buffers[next_dest].resize(m_vec_send_buffers[next_dest].size() -
                                          bytes);
+    /*
     size_t num_removed;
     if (local) {
-      num_removed = m_send_local_dest_list.remove(dest);
-      m_send_local_dest_list.push_back(next_dest);
-      m_vec_send_buffers[next_dest].reserve(config.local_buffer_size /
-                                            m_layout.local_size());
+      //num_removed = m_send_local_dest_list.remove(dest);
+      //m_send_local_dest_list.push_back(next_dest);
+      m_vec_send_buffers[next_dest].reserve(2*config.max_datagram_size);
     } else {
-      num_removed = m_send_remote_dest_list.remove(dest);
-      m_send_remote_dest_list.push_back(next_dest);
-      m_vec_send_buffers[next_dest].reserve(config.remote_buffer_size /
-                                            m_layout.node_size());
+      //num_removed = m_send_remote_dest_list.remove(dest);
+      //m_send_remote_dest_list.push_back(next_dest);
+      m_vec_send_buffers[next_dest].reserve(2*config.max_datagram_size);
     }
     YGM_ASSERT_RELEASE(num_removed == 1);
+    */
 
     flush_send_buffer(next_dest);
 
@@ -1357,12 +1357,10 @@ inline void comm::queue_message_bytes(const ygm::detail::byte_vector &packed,
   if (m_vec_send_buffers[dest].empty()) {
     if (local) {
       m_send_local_dest_list.push_back(dest);
-      m_vec_send_buffers[dest].reserve(config.local_buffer_size /
-                                       m_layout.local_size());
+      m_vec_send_buffers[dest].reserve(2 * config.max_datagram_size);
     } else {
       m_send_remote_dest_list.push_back(dest);
-      m_vec_send_buffers[dest].reserve(config.remote_buffer_size /
-                                       m_layout.node_size());
+      m_vec_send_buffers[dest].reserve(2 * config.max_datagram_size);
     }
   }
 
