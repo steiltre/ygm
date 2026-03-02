@@ -870,6 +870,7 @@ inline void comm::flush_send_buffer(int dest) {
 
     if (m_free_send_buffers.empty()) {
       request.buffer = std::make_shared<ygm::detail::byte_vector>();
+      request.buffer.resize(2 * config.max_datagram_size);
     } else {
       request.buffer = m_free_send_buffers.back();
       m_free_send_buffers.pop_back();
