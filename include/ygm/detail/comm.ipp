@@ -339,7 +339,7 @@ inline void comm::async_bcast(AsyncFunction &&fn, const SendArgs &...args) {
 
   //
   // Check if send buffer capacity has been exceeded
-  flush_to_capacity();
+  // flush_to_capacity();
 }
 
 template <typename AsyncFunction, typename... SendArgs>
@@ -1461,7 +1461,7 @@ inline void comm::handle_next_receive(
           m_send_remote_buffer_bytes += h.message_size;
         }
 
-        flush_to_capacity();
+        // flush_to_capacity();
       }
     } else {
       uint16_t lid;
@@ -1472,7 +1472,7 @@ inline void comm::handle_next_receive(
     }
   }
   post_new_irecv(buffer);
-  flush_to_capacity();
+  // flush_to_capacity();
 }
 
 /**
