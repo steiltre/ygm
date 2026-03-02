@@ -246,12 +246,12 @@ inline void comm::async(int dest, AsyncFunction &&fn, const SendArgs &...args) {
   if (m_vec_send_buffers[next_dest].empty()) {
     if (local) {
       m_send_local_dest_list.push_back(next_dest);
-      m_vec_send_buffers[next_dest].reserve(config.local_buffer_size /
-                                            m_layout.local_size());
+      m_vec_send_buffers[next_dest].reserve(
+          2 * config.max_datagram_size);  // Reserve double datagram size for
+                                          // serialization
     } else {
       m_send_remote_dest_list.push_back(next_dest);
-      m_vec_send_buffers[next_dest].reserve(config.remote_buffer_size /
-                                            m_layout.node_size());
+      m_vec_send_buffers[next_dest].reserve(2 * config.max_datagram_size);
     }
   }
 
