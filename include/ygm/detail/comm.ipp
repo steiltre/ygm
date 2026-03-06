@@ -36,7 +36,8 @@ struct comm::header_t {
 inline comm::comm(int *argc, char ***argv)
     : pimpl_if(std::make_shared<detail::mpi_init_finalize>(argc, argv)),
       m_layout(MPI_COMM_WORLD),
-      m_router(m_layout, config.routing) {
+      m_router(m_layout, config.routing),
+      m_logger(m_layout.rank()) {
   // pimpl_if = std::make_shared<detail::mpi_init_finalize>(argc, argv);
   comm_setup(MPI_COMM_WORLD);
 }
@@ -48,7 +49,9 @@ inline comm::comm(int *argc, char ***argv)
  * @return Constructed ygm::comm object
  */
 inline comm::comm(MPI_Comm mcomm)
-    : m_layout(mcomm), m_router(m_layout, config.routing) {
+    : m_layout(mcomm),
+      m_router(m_layout, config.routing),
+      m_logger(m_layout.rank()) {
   pimpl_if.reset();
   int flag(0);
   YGM_ASSERT_MPI(MPI_Initialized(&flag));
@@ -273,7 +276,12 @@ inline void comm::async(int dest, AsyncFunction &&fn, const SendArgs &...args) {
   // Send full datagram
   if (m_vec_send_buffers[next_dest].size() > config.max_datagram_size) {
     m_vec_send_buffers[next_dest].resize(m_vec_send_buffers[next_dest].size() -
-                                         bytes);
+                                         bytes - header_bytes);
+    if (local) {
+      m_send_local_buffer_bytes -= header_bytes;
+    } else {
+      m_send_remote_buffer_bytes -= header_bytes;
+    }
     /*
     size_t num_removed;
     if (local) {
@@ -289,6 +297,21 @@ inline void comm::async(int dest, AsyncFunction &&fn, const SendArgs &...args) {
     */
 
     flush_send_buffer(next_dest);
+
+    if (m_vec_send_buffers[next_dest].empty()) {
+      m_vec_send_buffers[next_dest].reserve(
+          2 * config.max_datagram_size);  // Reserve double datagram size for
+                                          // serialization
+    }
+
+    if (config.routing != detail::routing_type::NONE) {
+      header_bytes = pack_header(m_vec_send_buffers[next_dest], dest, 0);
+      if (local) {
+        m_send_local_buffer_bytes += header_bytes;
+      } else {
+        m_send_remote_buffer_bytes += header_bytes;
+      }
+    }
 
     // Reserialize message and put in send buffer after sending full datagram
     bytes = pack_lambda(m_vec_send_buffers[next_dest],
@@ -874,8 +897,10 @@ inline void comm::flush_send_buffer(int dest) {
     } else {
       request.buffer = m_free_send_buffers.back();
       m_free_send_buffers.pop_back();
+      request.buffer->reserve(2 * config.max_datagram_size);
     }
     request.buffer->swap(m_vec_send_buffers[dest]);
+    YGM_ASSERT_RELEASE(request.buffer->size() <= request.buffer->capacity());
     if (config.freq_issend > 0 && counter++ % config.freq_issend == 0) {
       log(log_level::debug, "MPI_Issend " +
                                 std::to_string(request.buffer->size()) +
@@ -1445,6 +1470,21 @@ inline void comm::handle_next_receive(
 
         size_t header_bytes =
             pack_header(m_vec_send_buffers[next_dest], h.dest, h.message_size);
+
+        if (m_vec_send_buffers[next_dest].size() + h.message_size >
+            config.max_datagram_size) {
+          m_vec_send_buffers[next_dest].resize(
+              m_vec_send_buffers[next_dest].size() - header_bytes);
+
+          flush_send_buffer(next_dest);
+
+          m_vec_send_buffers[next_dest].reserve(
+              2 * config.max_datagram_size);  // Reserve double datagram size
+                                              // for serialization
+
+          header_bytes = pack_header(m_vec_send_buffers[next_dest], h.dest,
+                                     h.message_size);
+        }
         if (local) {
           m_send_local_buffer_bytes += header_bytes;
         } else {

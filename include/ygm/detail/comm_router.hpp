@@ -70,6 +70,8 @@ class comm_router {
         return -1;
     }
 
+    YGM_ASSERT_RELEASE(to_return < m_layout.size());
+
     return to_return;
   }
 

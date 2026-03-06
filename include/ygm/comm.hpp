@@ -262,6 +262,10 @@ class comm {
     m_logger.set_log_level(level);
   }
 
+  void set_logger_target(const ygm::logger_target target) {
+    m_logger.set_logger_target(target);
+  }
+
   /**
    * @brief Add a message to the YGM logs
    *
