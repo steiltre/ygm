@@ -7,6 +7,7 @@
 
 #include <boost/unordered/unordered_flat_map.hpp>
 #include <ygm/container/container_traits.hpp>
+#include <ygm/container/detail/base_async_contains.hpp>
 #include <ygm/container/detail/base_async_erase.hpp>
 #include <ygm/container/detail/base_async_insert.hpp>
 #include <ygm/container/detail/base_async_insert_or_assign.hpp>
@@ -32,6 +33,8 @@ class map
       public detail::base_contains<map<Key, Value>, std::tuple<Key, Value>>,
       public detail::base_count<map<Key, Value>, std::tuple<Key, Value>>,
       public detail::base_async_reduce<map<Key, Value>, std::tuple<Key, Value>>,
+      public detail::base_async_contains<map<Key, Value>,
+                                         std::tuple<Key, Value>>,
       public detail::base_async_erase_key<map<Key, Value>,
                                           std::tuple<Key, Value>>,
       public detail::base_async_erase_key_value<map<Key, Value>,
