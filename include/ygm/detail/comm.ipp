@@ -1397,7 +1397,6 @@ inline int comm::prepare_receive_data(mpi_irecv_request &req_buffer,
 
   if (status.MPI_TAG == YGMTag::buffer_content) {
     YGM_ASSERT_MPI(MPI_Get_count(&status, MPI_BYTE, &buffer_size));
-    m_stats.irecv(status.MPI_SOURCE, buffer_size);
   } else if (status.MPI_TAG == YGMTag::large_buffer_size) {
     memcpy(&buffer_size, req_buffer.buffer.get()->data(), sizeof(int));
     req_buffer.buffer.get()->resize(buffer_size);
@@ -1408,6 +1407,8 @@ inline int comm::prepare_receive_data(mpi_irecv_request &req_buffer,
     cerr() << "Unknown tag received" << status.MPI_TAG << std::endl;
     exit(1);
   }
+
+  m_stats.irecv(status.MPI_SOURCE, buffer_size);
 
   return buffer_size;
 }
