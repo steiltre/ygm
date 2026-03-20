@@ -212,7 +212,7 @@ class comm_environment {
   size_t local_buffer_size;
   size_t remote_buffer_size;
 
-  size_t irecv_size = 1024 * 1024 * 1024;
+  size_t irecv_size = 1024 * 1024;
   size_t num_irecvs = 8;
 
   size_t num_isends_wait           = 4;
