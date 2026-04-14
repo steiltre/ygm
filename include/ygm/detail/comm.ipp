@@ -170,6 +170,10 @@ inline void comm::stats_print(const std::string &name, std::ostream &os) {
        << ::ygm::sum(m_stats.get_isend_count(), *this) << "\n"
        << "GLOBAL_ISEND_BYTES       = "
        << ::ygm::sum(m_stats.get_isend_bytes(), *this) << "\n"
+       << "MAX_LRG_BFR_SEND_COUNT   = "
+       << ::ygm::max(m_stats.get_large_buffer_send_count(), *this) << "\n"
+       << "MAX_LRG_BFR_RECV_COUNT   = "
+       << ::ygm::max(m_stats.get_large_buffer_recv_count(), *this) << "\n"
        << "MAX_WAITSOME_ISEND_IRECV = "
        << ::ygm::max(m_stats.get_waitsome_isend_irecv_time(), *this) << "\n"
        << "MAX_WAITSOME_IALLREDUCE  = "
@@ -881,6 +885,8 @@ inline void comm::flush_send_buffer(int dest) {
                     dest, YGMTag::large_buffer_size, m_comm_async, &tmp_req));
       YGM_ASSERT_MPI(MPI_Request_free(&tmp_req));
 
+      m_stats.large_buffer_send(dest);
+
       comm_send = m_comm_async_large_buffer;
     }
 
@@ -1403,6 +1409,9 @@ inline int comm::prepare_receive_data(mpi_irecv_request &req_buffer,
     YGM_ASSERT_MPI(MPI_Recv(req_buffer.buffer.get()->data(), buffer_size,
                             MPI_BYTE, status.MPI_SOURCE, YGMTag::buffer_content,
                             m_comm_async_large_buffer, &status));
+
+    m_stats.large_buffer_recv(status.MPI_SOURCE);
+
   } else {
     cerr() << "Unknown tag received" << status.MPI_TAG << std::endl;
     exit(1);
