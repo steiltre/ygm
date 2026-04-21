@@ -67,6 +67,7 @@ class lru_cache {
    * @tparam Function functor type
    * @param key Key to insert
    * @param val Associated value to insert
+   * @param fn Functor that returns true if existing value is to be replaced
    */
   template <typename Function>
   void async_insert(const int rank, const key_type &key, const mapped_type &val,
@@ -131,6 +132,9 @@ class lru_cache {
 
     if (m_map.contains(key)) {
       to_return = m_map.find(key)->second->value;
+      ++m_cache_hits;
+    } else {
+      ++m_cache_misses;
     }
 
     return to_return;
@@ -160,6 +164,20 @@ class lru_cache {
    */
   ptr_type get_ygm_ptr() const { return pthis; }
 
+  /**
+   * @brief Return the number of local cache hits
+   *
+   * @return Number of cache hits
+   */
+  size_t local_cache_hit_count() { return m_cache_hits; }
+
+  /**
+   * @brief Return the number of local cache misses
+   *
+   * @return Number of cache misses
+   */
+  size_t local_cache_miss_count() { return m_cache_hits; }
+
  private:
   /**
    * @brief Shrinks the cache to the specified capacity by removing
@@ -188,6 +206,9 @@ class lru_cache {
   ptr_type   pthis;
 
   size_t m_capacity;
+
+  mutable size_t m_cache_hits   = 0;
+  mutable size_t m_cache_misses = 0;
 
   list_type m_list;
   map_type  m_map;
