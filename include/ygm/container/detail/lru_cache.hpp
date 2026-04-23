@@ -184,7 +184,7 @@ class lru_cache {
    *
    * @return Number of cache inserts
    */
-  size_t local_cache_inserts() { return m_cache_inserts; }
+  size_t local_cache_insert_count() { return m_cache_inserts; }
 
  private:
   /**
