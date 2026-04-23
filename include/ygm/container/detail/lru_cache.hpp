@@ -95,6 +95,7 @@ class lru_cache {
     m_map[key] = m_list.begin();
 
     shrink_to_capacity();
+    ++m_cache_inserts;
   }
 
   /**
@@ -178,6 +179,13 @@ class lru_cache {
    */
   size_t local_cache_miss_count() { return m_cache_hits; }
 
+  /**
+   * @brief Return the number of local cache inserts
+   *
+   * @return Number of cache inserts
+   */
+  size_t local_cache_inserts() { return m_cache_inserts; }
+
  private:
   /**
    * @brief Shrinks the cache to the specified capacity by removing
@@ -207,8 +215,9 @@ class lru_cache {
 
   size_t m_capacity;
 
-  mutable size_t m_cache_hits   = 0;
-  mutable size_t m_cache_misses = 0;
+  mutable size_t m_cache_hits    = 0;
+  mutable size_t m_cache_misses  = 0;
+  mutable size_t m_cache_inserts = 0;
 
   list_type m_list;
   map_type  m_map;
