@@ -177,7 +177,7 @@ class lru_cache {
    *
    * @return Number of cache misses
    */
-  size_t local_cache_miss_count() { return m_cache_hits; }
+  size_t local_cache_miss_count() { return m_cache_misses; }
 
   /**
    * @brief Return the number of local cache inserts
