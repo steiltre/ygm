@@ -132,6 +132,9 @@ class comm_environment {
     if (const char* cc = std::getenv("YGM_COMM_TRACE_PATH")) {
       trace_path = std::string(cc);
     }
+    if (const char* cc = std::getenv("YGM_COMM_STATS_SHM")) {
+      stats_shm = convert<bool>(cc);
+    }
     if (const char* cc = std::getenv("YGM_DEFAULT_LOG_PATH")) {
       default_log_path = std::string(cc);
     }
@@ -181,6 +184,7 @@ class comm_environment {
     os << "YGM_COMM_TRACE_YGM          = " << trace_ygm << "\n";
     os << "YGM_COMM_TRACE_MPI          = " << trace_mpi << "\n";
     os << "YGM_COMM_TRACE_PATH         = " << trace_path << "\n";
+    os << "YGM_COMM_STATS_SHM              = " << stats_shm << "\n";
     os << "YGM_DEFAULT_LOG_PATH             = " << default_log_path << "\n"
        << "YGM_DEFAULT_LOG_LEVEL            = ";
     switch (default_log_level) {
@@ -229,6 +233,8 @@ class comm_environment {
   bool        trace_ygm  = false;
   bool        trace_mpi  = false;
   std::string trace_path = "trace/";
+
+  bool        stats_shm = true;
 };
 
 }  // namespace detail

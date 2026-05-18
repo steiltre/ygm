@@ -1,14 +1,20 @@
-// Copyright 2019-2025 Lawrence Livermore National Security, LLC and other YGM
+// Copyright 2019-2026 Lawrence Livermore National Security, LLC and other YGM
 // Project Developers. See the top-level COPYRIGHT file for details.
 //
 // SPDX-License-Identifier: MIT
 
 #pragma once
+
+#include <boost/uuid/random_generator.hpp>
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_io.hpp>
+
 #include <ygm/detail/collective.hpp>
 #include <ygm/detail/lambda_compliance.hpp>
 #include <ygm/detail/meta/functional.hpp>
 #include <ygm/detail/ygm_cereal_archive.hpp>
 #include <ygm/detail/ygm_ptr.hpp>
+#include <ygm/detail/ygm_uuids.hpp>
 #include <ygm/version.hpp>
 
 namespace ygm {
@@ -71,6 +77,16 @@ inline comm::comm(MPI_Comm mcomm)
  * send buffers, and posts initial receives.
  */
 inline void comm::comm_setup(MPI_Comm c) {
+
+  if (rank0()) {
+    boost::uuids::random_generator gen;
+    m_uuid = boost::uuids::to_string(gen());
+  }
+  int uuid_len = static_cast<int>(m_uuid.size());
+  MPI_Bcast(&uuid_len, 1, MPI_INT, 0, c);
+  m_uuid.resize(static_cast<size_t>(uuid_len));
+  MPI_Bcast(m_uuid.data(), uuid_len, MPI_CHAR, 0, c);
+
   m_logger.set_path(config.default_log_path + std::to_string(rank()));
   m_logger.set_log_level(config.default_log_level);
   m_logger.log(log_level::info, "Setting up ygm::comm");
@@ -97,6 +113,26 @@ inline void comm::comm_setup(MPI_Comm c) {
     cf_barrier();
     m_tracer.open_file();
   }
+
+  if (config.stats_shm) {
+    #ifdef __APPLE__
+      std::string uuid_identifier = m_uuid.substr(0, 8) + "_" + std::to_string(rank());
+    #endif
+
+    #ifdef __linux__
+      std::string uuid_identifier = m_uuid + "_" + std::to_string(rank());
+    #endif
+
+    // Add to set of tracked UUID_rank pairs while blocking signals.
+    sigset_t newset, oldset;
+    sigfillset(&newset);
+    sigprocmask(SIG_BLOCK, &newset, &oldset);
+    ygm::detail::live_comm_uuids.insert(uuid_identifier);
+    sigprocmask(SIG_SETMASK, &oldset, NULL);
+
+    m_stats.open_comm_stats_shm(rank(), size(), m_layout.local_size(), uuid_identifier);
+  }
+
 }
 
 /**
@@ -419,6 +455,7 @@ inline void comm::async_barrier() {
  * messages before any rank is able to return from the barrier() call.
  */
 inline void comm::barrier() {
+  m_stats.barrier();
   if (m_trace_ygm || m_trace_mpi) {
     m_tracer.trace_barrier_begin(m_tracer.get_next_message_id(), m_send_count,
                                  m_recv_count, m_pending_isend_bytes,

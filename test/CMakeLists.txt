@@ -80,6 +80,7 @@ add_ygm_test(test_ndjson_parser)
 add_ygm_test(test_stats)
 add_ygm_test(test_work_queue)
 add_ygm_test(test_container_vectors)
+add_ygm_test(test_shm_handling)
 
 
 if (Arrow_FOUND AND Parquet_FOUND)
