@@ -50,5 +50,7 @@ int main() {
     ygm::container::bag<int> b(world);
   }
 
+  MPI_Finalize();
+
   return 0;
 }
