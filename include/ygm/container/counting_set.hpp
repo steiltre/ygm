@@ -42,6 +42,7 @@ class counting_set
   using size_type      = size_t;
   using for_all_args   = std::tuple<Key, size_t>;
   using container_type = ygm::container::counting_set_tag;
+  using ptr_type       = typename ygm::ygm_ptr<self_type>;
   using iterator       = typename internal_container_type::iterator;
   using const_iterator = typename internal_container_type::const_iterator;
 
@@ -53,7 +54,10 @@ class counting_set
    * @param comm Communicator to use for communication
    */
   counting_set(ygm::comm &comm)
-      : m_comm(comm), pthis(this), m_map(comm), partitioner(m_map.partitioner) {
+      : m_comm(comm),
+        pthis(this, ygm::max(ptr_type::next_index(), comm)),
+        m_map(comm),
+        partitioner(m_map.partitioner) {
     m_comm.log(log_level::info, "Creating ygm::container::counting_set");
     pthis.check(m_comm);
     m_count_cache.resize(count_cache_size, {key_type(), -1});
@@ -69,7 +73,10 @@ class counting_set
    * @details Initializer list is assumed to be replicated on all ranks.
    */
   counting_set(ygm::comm &comm, std::initializer_list<Key> l)
-      : m_comm(comm), pthis(this), m_map(comm), partitioner(m_map.partitioner) {
+      : m_comm(comm),
+        pthis(this, ygm::max(ptr_type::next_index(), comm)),
+        m_map(comm),
+        partitioner(m_map.partitioner) {
     m_comm.log(log_level::info, "Creating ygm::container::counting_set");
     pthis.check(m_comm);
     m_count_cache.resize(count_cache_size, {key_type(), -1});
@@ -89,10 +96,13 @@ class counting_set
    * @param cont STL container containing values to count
    */
   template <typename STLContainer>
-  counting_set(ygm::comm &comm, const STLContainer &cont) requires
-      detail::STLContainer<STLContainer> &&
-      std::convertible_to<typename STLContainer::value_type, Key>
-      : m_comm(comm), pthis(this), m_map(comm), partitioner(m_map.partitioner) {
+  counting_set(ygm::comm &comm, const STLContainer &cont)
+    requires detail::STLContainer<STLContainer> &&
+                 std::convertible_to<typename STLContainer::value_type, Key>
+      : m_comm(comm),
+        pthis(this, ygm::max(ptr_type::next_index(), comm)),
+        m_map(comm),
+        partitioner(m_map.partitioner) {
     m_comm.log(log_level::info, "Creating ygm::container::counting_set");
     pthis.check(m_comm);
     m_count_cache.resize(count_cache_size, {key_type(), -1});
@@ -110,10 +120,13 @@ class counting_set
    * @param yc YGM container containing values to count
    */
   template <typename YGMContainer>
-  counting_set(ygm::comm &comm, const YGMContainer &yc) requires
-      detail::HasForAll<YGMContainer> &&
-      detail::SingleItemTuple<typename YGMContainer::for_all_args>
-      : m_comm(comm), pthis(this), m_map(comm), partitioner(m_map.partitioner) {
+  counting_set(ygm::comm &comm, const YGMContainer &yc)
+    requires detail::HasForAll<YGMContainer> &&
+                 detail::SingleItemTuple<typename YGMContainer::for_all_args>
+      : m_comm(comm),
+        pthis(this, ygm::max(ptr_type::next_index(), comm)),
+        m_map(comm),
+        partitioner(m_map.partitioner) {
     m_comm.log(log_level::info, "Creating ygm::container::counting_set");
     pthis.check(m_comm);
     m_count_cache.resize(count_cache_size, {key_type(), -1});
@@ -129,7 +142,7 @@ class counting_set
 
   counting_set(const self_type &other)
       : m_comm(other.comm()),
-        pthis(this),
+        pthis(this, ygm::max(ptr_type::next_index(), other.comm())),
         m_count_cache(other.m_count_cache),
         m_cache_empty(other.m_cache_empty),
         m_map(other.m_map),
@@ -145,7 +158,7 @@ class counting_set
 
   counting_set(self_type &&other)
       : m_comm(other.comm()),
-        pthis(this),
+        pthis(this, ygm::max(ptr_type::next_index(), other.comm())),
         m_count_cache(std::move(other.m_count_cache)),
         m_cache_empty(other.m_cache_empty),
         m_map(std::move(other.m_map)),
@@ -474,7 +487,7 @@ class counting_set
   }
 
   ygm::comm                           &m_comm;
-  typename ygm::ygm_ptr<self_type>     pthis;
+  ptr_type                             pthis;
   std::vector<std::pair<Key, int32_t>> m_count_cache;
   bool                                 m_cache_empty = true;
   internal_container_type              m_map;

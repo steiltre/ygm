@@ -77,7 +77,6 @@ inline comm::comm(MPI_Comm mcomm)
  * send buffers, and posts initial receives.
  */
 inline void comm::comm_setup(MPI_Comm c) {
-
   if (rank0()) {
     boost::uuids::random_generator gen;
     m_uuid = boost::uuids::to_string(gen());
@@ -115,13 +114,14 @@ inline void comm::comm_setup(MPI_Comm c) {
   }
 
   if (config.stats_shm) {
-    #ifdef __APPLE__
-      std::string uuid_identifier = m_uuid.substr(0, 8) + "_" + std::to_string(rank());
-    #endif
+#ifdef __APPLE__
+    std::string uuid_identifier =
+        m_uuid.substr(0, 8) + "_" + std::to_string(rank());
+#endif
 
-    #ifdef __linux__
-      std::string uuid_identifier = m_uuid + "_" + std::to_string(rank());
-    #endif
+#ifdef __linux__
+    std::string uuid_identifier = m_uuid + "_" + std::to_string(rank());
+#endif
 
     // Add to set of tracked UUID_rank pairs while blocking signals.
     sigset_t newset, oldset;
@@ -130,9 +130,9 @@ inline void comm::comm_setup(MPI_Comm c) {
     ygm::detail::live_comm_uuids.insert(uuid_identifier);
     sigprocmask(SIG_SETMASK, &oldset, NULL);
 
-    m_stats.open_comm_stats_shm(rank(), size(), m_layout.local_size(), uuid_identifier);
+    m_stats.open_comm_stats_shm(rank(), size(), m_layout.local_size(),
+                                uuid_identifier);
   }
-
 }
 
 /**
@@ -521,7 +521,8 @@ inline void comm::cf_barrier() const {
 
 template <typename T>
 inline ygm_ptr<T> comm::make_ygm_ptr(T &t) {
-  ygm_ptr<T> to_return(&t);
+  size_t     idx = ygm::max(ygm_ptr<T>::next_index(), *this);
+  ygm_ptr<T> to_return(&t, idx);
   to_return.check(*this);
   return to_return;
 }
