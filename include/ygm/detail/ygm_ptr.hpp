@@ -47,7 +47,7 @@ class ygm_ptr {
    *
    * @param t
    */
-  ygm_ptr(T *t) : ygm_ptr(t, sptrs.size() - 1) {}
+  ygm_ptr(T *t) : ygm_ptr(t, sptrs.size()) {}
 
   ygm_ptr(const ygm::ygm_ptr<T> &t) { idx = t.idx; }
 
