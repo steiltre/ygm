@@ -51,6 +51,11 @@ class ygm_ptr {
 
   ygm_ptr(const ygm::ygm_ptr<T> &t) { idx = t.idx; }
 
+  ygm_ptr &operator=(const ygm::ygm_ptr<T> &t) {
+    idx = t.idx;
+    return *this;
+  }
+
   T *get_raw_pointer() { return operator->(); }
 
   uint32_t index() const { return idx; }

@@ -75,11 +75,21 @@ class work_queue
 
   work_queue(self_type&& other) noexcept
       : m_comm(other.m_comm),
-        pthis(this, ygm::max(ptr_type::next_index(), other.comm())),
+        pthis(this,
+              other.get_ygm_ptr().index()),  // temporarily use other's ygm_ptr
         m_local_queue(std::move(other.m_local_queue)),
         m_work_lambda(std::move(other.m_work_lambda)),
         m_callback_registered(false) {
     m_comm.log(log_level::info, "Moving ygm::container::work_queue");
+
+    // Find correct ygm_ptr to use for new work_queue
+    // NOTE: Needs to be done without calling ygm collectives because of
+    // built-in barriers that would process all work items originally stored in
+    // other
+    size_t idx = ptr_type::next_index();
+    MPI_Allreduce(MPI_IN_PLACE, &idx, 1, MPI_LONG_LONG, MPI_MAX,
+                  m_comm.get_mpi_comm());
+    pthis = ptr_type(this, idx);
 
     pthis.check(m_comm);
     other.m_callback_registered = false;
@@ -88,6 +98,7 @@ class work_queue
       register_processing_callback();
     }
   }
+  // work_queue(self_type&& other) = default;
 
   work_queue& operator=(self_type&& other) noexcept {
     if (this == &other) return *this;
