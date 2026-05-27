@@ -44,6 +44,7 @@ class set
   using size_type      = size_t;
   using for_all_args   = std::tuple<Value>;
   using container_type = ygm::container::set_tag;
+  using ptr_type       = typename ygm::ygm_ptr<self_type>;
   using iterator       = typename local_container_type::iterator;
   using const_iterator = typename local_container_type::const_iterator;
 
@@ -58,7 +59,7 @@ class set
    */
   set(ygm::comm &comm)
       : m_comm(comm),
-        pthis(this),
+        pthis(this, ygm::max(ptr_type::next_index(), comm)),
         partitioner(comm, detail::hash<value_type>()) {
     m_comm.log(log_level::info, "Creating ygm::container::set");
     pthis.check(m_comm);
@@ -72,7 +73,9 @@ class set
    * @details Initializer list is assumed to be replicated on all ranks.
    */
   set(ygm::comm &comm, std::initializer_list<Value> l)
-      : m_comm(comm), pthis(this), partitioner(comm) {
+      : m_comm(comm),
+        pthis(this, ygm::max(ptr_type::next_index(), comm)),
+        partitioner(comm) {
     m_comm.log(log_level::info, "Creating ygm::container::set");
     pthis.check(m_comm);
     if (m_comm.rank0()) {
@@ -94,7 +97,9 @@ class set
   set(ygm::comm &comm, const STLContainer &cont)
     requires detail::STLContainer<STLContainer> &&
                  std::convertible_to<typename STLContainer::value_type, Value>
-      : m_comm(comm), pthis(this), partitioner(comm) {
+      : m_comm(comm),
+        pthis(this, ygm::max(ptr_type::next_index(), comm)),
+        partitioner(comm) {
     m_comm.log(log_level::info, "Creating ygm::container::set");
     pthis.check(m_comm);
 
@@ -115,7 +120,9 @@ class set
   set(ygm::comm &comm, const YGMContainer &yc)
     requires detail::HasForAll<YGMContainer> &&
                  detail::SingleItemTuple<typename YGMContainer::for_all_args>
-      : m_comm(comm), pthis(this), partitioner(comm) {
+      : m_comm(comm),
+        pthis(this, ygm::max(ptr_type::next_index(), comm)),
+        partitioner(comm) {
     m_comm.log(log_level::info, "Creating ygm::container::set");
     pthis.check(m_comm);
 
@@ -133,7 +140,7 @@ class set
 
   set(const self_type &other)
       : m_comm(other.comm()),
-        pthis(this),
+        pthis(this, ygm::max(ptr_type::next_index(), other.comm())),
         m_local_set(other.m_local_set),
         partitioner(other.comm()) {
     m_comm.log(log_level::info, "Creating ygm::container::set");
@@ -142,7 +149,7 @@ class set
 
   set(self_type &&other) noexcept
       : m_comm(other.comm()),
-        pthis(this),
+        pthis(this, ygm::max(ptr_type::next_index(), other.comm())),
         m_local_set(std::move(other.m_local_set)),
         partitioner(other.partitioner) {
     m_comm.log(log_level::info, "Creating ygm::container::set");
@@ -330,9 +337,9 @@ class set
   void local_swap(self_type &other) { m_local_set.swap(other.m_local_set); }
 
  private:
-  ygm::comm                       &m_comm;
-  typename ygm::ygm_ptr<self_type> pthis;
-  local_container_type             m_local_set;
+  ygm::comm           &m_comm;
+  ptr_type             pthis;
+  local_container_type m_local_set;
 
  public:
   detail::hash_partitioner<detail::hash<value_type>> partitioner;

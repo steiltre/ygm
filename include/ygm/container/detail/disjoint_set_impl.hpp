@@ -20,7 +20,7 @@ class disjoint_set_impl {
   struct data_t;
 
   using self_type         = disjoint_set_impl<Item, Partitioner>;
-  using self_ygm_ptr_type = typename ygm::ygm_ptr<self_type>;
+  using ptr_type          = typename ygm::ygm_ptr<self_type>;
   using value_type        = Item;
   using size_type         = size_t;
   using ygm_for_all_types = std::tuple<Item, Item>;
@@ -127,7 +127,9 @@ class disjoint_set_impl {
   };
 
   disjoint_set_impl(ygm::comm &comm, const size_t cache_size)
-      : m_comm(comm), pthis(this), m_cache(cache_size) {
+      : m_comm(comm),
+        pthis(this, ygm::max(ptr_type::next_index(), comm)),
+        m_cache(cache_size) {
     m_comm.log(log_level::info, "Creating ygm::container::disjoint_set");
     pthis.check(m_comm);
   }
@@ -207,7 +209,7 @@ class disjoint_set_impl {
 
     // Walking up parent trees can be expressed as a recursive operation
     struct simul_parent_walk_functor {
-      void operator()(self_ygm_ptr_type                    p_dset,
+      void operator()(ptr_type                             p_dset,
                       std::pair<const value_type, data_t> &my_item_data,
                       const value_type &my_child, value_type other_parent,
                       value_type other_item, rank_type other_rank) {
@@ -348,7 +350,7 @@ class disjoint_set_impl {
 
     // Walking up parent trees can be expressed as a recursive operation
     struct simul_parent_walk_functor {
-      void operator()(self_ygm_ptr_type                    p_dset,
+      void operator()(ptr_type                             p_dset,
                       std::pair<const value_type, data_t> &my_item_data,
                       const value_type &my_child, value_type other_parent,
                       value_type other_item, rank_type other_rank,
@@ -402,7 +404,7 @@ class disjoint_set_impl {
             if constexpr (std::is_invocable<decltype(fn), const value_type &,
                                             const value_type &, const bool,
                                             FunctionArgs &...>() ||
-                          std::is_invocable<decltype(fn), self_ygm_ptr_type,
+                          std::is_invocable<decltype(fn), ptr_type,
                                             const value_type &,
                                             const value_type &, const bool,
                                             FunctionArgs &...>()) {
@@ -446,7 +448,7 @@ class disjoint_set_impl {
               if constexpr (std::is_invocable<decltype(fn), const value_type &,
                                               const value_type &, const bool,
                                               FunctionArgs &...>() ||
-                            std::is_invocable<decltype(fn), self_ygm_ptr_type,
+                            std::is_invocable<decltype(fn), ptr_type,
                                               const value_type &,
                                               const value_type &, const bool,
                                               FunctionArgs &...>()) {
@@ -528,7 +530,7 @@ class disjoint_set_impl {
 
     struct update_rep_functor {
      public:
-      void operator()(self_ygm_ptr_type p_dset, const value_type &parent,
+      void operator()(ptr_type p_dset, const value_type &parent,
                       const value_type &rep) {
         auto &local_rep_query = queries.at(parent);
         local_rep_query.rep   = rep;
@@ -551,7 +553,7 @@ class disjoint_set_impl {
       }
     };
 
-    auto query_rep_lambda = [](self_ygm_ptr_type p_dset, const value_type &item,
+    auto query_rep_lambda = [](ptr_type p_dset, const value_type &item,
                                int inquiring_rank) {
       const auto &item_info = p_dset->m_local_item_map[item];
 
@@ -627,7 +629,7 @@ class disjoint_set_impl {
     ygm_ptr<return_type> p_to_return(&to_return);
 
     struct find_rep_functor {
-      void operator()(self_ygm_ptr_type pdset, ygm_ptr<return_type> p_to_return,
+      void operator()(ptr_type pdset, ygm_ptr<return_type> p_to_return,
                       const value_type &source_item, const int source_rank,
                       const value_type &local_item) {
         const auto parent = pdset->m_local_item_map[local_item].get_parent();
@@ -638,7 +640,7 @@ class disjoint_set_impl {
           int dest = pdset->owner(source_item);
           pdset->comm().async(
               dest,
-              [](self_ygm_ptr_type pdset, const value_type &source_item,
+              [](ptr_type pdset, const value_type &source_item,
                  const value_type &root) {
                 pdset->m_local_item_map[source_item].set_parent(root);
               },
@@ -740,9 +742,9 @@ class disjoint_set_impl {
  protected:
   disjoint_set_impl() = delete;
 
-  ygm::comm        &m_comm;
-  self_ygm_ptr_type pthis;
-  item_map_type     m_local_item_map;
+  ygm::comm    &m_comm;
+  ptr_type      pthis;
+  item_map_type m_local_item_map;
 
   hash_cache m_cache;
 

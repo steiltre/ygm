@@ -21,6 +21,7 @@ class tagged_bag {
   using tag_type   = size_t;
   using value_type = Item;
   using self_type  = tagged_bag<Item, Alloc>;
+  using ptr_type   = typename ygm::ygm_ptr<self_type>;
 
   tagged_bag(const tagged_bag &)                = delete;
   tagged_bag(tagged_bag &&) noexcept            = delete;
@@ -29,7 +30,7 @@ class tagged_bag {
   tagged_bag(ygm::comm &comm)
       : m_next_tag(tag_type(comm.rank()) << TAG_BITS),
         m_tagged_bag(ygm::container::map<tag_type, value_type>(comm)),
-        pthis(this) {
+        pthis(this, ygm::max(ptr_type::next_index(), comm)) {
     m_tagged_bag.comm().log(log_level::info,
                             "Creating ygm::container::tagged_bag");
   }
@@ -125,6 +126,6 @@ class tagged_bag {
   const tag_type MAX_TAGS = (size_t(1) << TAG_BITS) - 1;
   tag_type       m_next_tag;
   ygm::container::map<tag_type, value_type> m_tagged_bag;
-  typename ygm::ygm_ptr<self_type>          pthis;
+  ptr_type                                  pthis;
 };
 }  // namespace ygm::container

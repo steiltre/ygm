@@ -150,7 +150,7 @@ class array
    */
   array(ygm::comm& comm, const size_type size)
       : m_comm(comm),
-        pthis(this),
+        pthis(this, ygm::max(ptr_type::next_index(), comm)),
         m_global_size(size),
         m_default_value{},
         partitioner(comm, size) {
@@ -169,7 +169,7 @@ class array
    */
   array(ygm::comm& comm, const size_type size, const mapped_type& default_value)
       : m_comm(comm),
-        pthis(this),
+        pthis(this, ygm::max(ptr_type::next_index(), comm)),
         m_global_size(size),
         m_default_value(default_value),
         partitioner(comm, size) {
@@ -191,7 +191,7 @@ class array
    */
   array(ygm::comm& comm, std::initializer_list<mapped_type> l)
       : m_comm(comm),
-        pthis(this),
+        pthis(this, ygm::max(ptr_type::next_index(), comm)),
         m_global_size(l.size()),
         m_default_value{},
         partitioner(comm, l.size()) {
@@ -222,7 +222,10 @@ class array
    */
   array(ygm::comm&                                               comm,
         std::initializer_list<std::tuple<key_type, mapped_type>> l)
-      : m_comm(comm), pthis(this), m_default_value{}, partitioner(comm, 0) {
+      : m_comm(comm),
+        pthis(this, ygm::max(ptr_type::next_index(), comm)),
+        m_default_value{},
+        partitioner(comm, 0) {
     m_comm.cout0("initializer_list assumes all ranks are equal");
     m_comm.log(log_level::info, "Creating ygm::container::array");
     pthis.check(m_comm);
@@ -260,7 +263,10 @@ class array
     requires detail::HasForAll<T> &&
                  detail::SingleItemTuple<typename T::for_all_args> &&
                  std::same_as<typename T::for_all_args, std::tuple<mapped_type>>
-      : m_comm(comm), pthis(this), m_default_value{}, partitioner(comm, 0) {
+      : m_comm(comm),
+        pthis(this, ygm::max(ptr_type::next_index(), comm)),
+        m_default_value{},
+        partitioner(comm, 0) {
     m_comm.log(log_level::info, "Creating ygm::container::array");
     pthis.check(m_comm);
 
@@ -299,7 +305,10 @@ class array
                      std::tuple_element_t<
                          1, std::tuple_element_t<0, typename T::for_all_args>>,
                      mapped_type>
-      : m_comm(comm), pthis(this), m_default_value{}, partitioner(comm, 0) {
+      : m_comm(comm),
+        pthis(this, ygm::max(ptr_type::next_index(), comm)),
+        m_default_value{},
+        partitioner(comm, 0) {
     m_comm.log(log_level::info, "Creating ygm::container::array");
     pthis.check(m_comm);
 
@@ -339,7 +348,10 @@ class array
                  std::convertible_to<
                      std::tuple_element_t<0, typename T::for_all_args>,
                      mapped_type>
-      : m_comm(comm), pthis(this), m_default_value{}, partitioner(comm, 0) {
+      : m_comm(comm),
+        pthis(this, ygm::max(ptr_type::next_index(), comm)),
+        m_default_value{},
+        partitioner(comm, 0) {
     m_comm.log(log_level::info, "Creating ygm::container::array");
     pthis.check(m_comm);
 
@@ -376,7 +388,10 @@ class array
     requires detail::STLContainer<T> &&
                  (not detail::SingleItemTuple<typename T::value_type>) &&
                  std::convertible_to<typename T::value_type, mapped_type>
-      : m_comm(comm), pthis(this), m_default_value{}, partitioner(comm, 0) {
+      : m_comm(comm),
+        pthis(this, ygm::max(ptr_type::next_index(), comm)),
+        m_default_value{},
+        partitioner(comm, 0) {
     m_comm.log(log_level::info, "Creating ygm::container::array");
     pthis.check(m_comm);
 
@@ -413,7 +428,10 @@ class array
                  std::convertible_to<
                      std::tuple_element_t<1, typename T::value_type>,
                      mapped_type>
-      : m_comm(comm), pthis(this), m_default_value{}, partitioner(comm, 0) {
+      : m_comm(comm),
+        pthis(this, ygm::max(ptr_type::next_index(), comm)),
+        m_default_value{},
+        partitioner(comm, 0) {
     m_comm.log(log_level::info, "Creating ygm::container::array");
     pthis.check(m_comm);
 
@@ -438,7 +456,7 @@ class array
 
   array(const self_type& other)
       : m_comm(other.comm()),
-        pthis(this),
+        pthis(this, ygm::max(ptr_type::next_index(), other.comm())),
         m_global_size(other.m_global_size),
         m_default_value(other.m_default_value),
         m_local_vec(other.m_local_vec),
@@ -449,7 +467,7 @@ class array
 
   array(self_type&& other) noexcept
       : m_comm(other.comm()),
-        pthis(this),
+        pthis(this, ygm::max(ptr_type::next_index(), other.comm())),
         m_global_size(other.m_global_size),
         m_default_value(other.m_default_value),
         m_local_vec(std::move(other.m_local_vec)),
@@ -895,7 +913,6 @@ class array
                     "(mapped_type &) signatures");
     }
   }
-
 
   /**
    * @brief Update a locally stored element by performing a binary operation

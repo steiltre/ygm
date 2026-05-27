@@ -47,6 +47,7 @@ class bag : public detail::base_async_insert_value<bag<Item>, std::tuple<Item>>,
   using size_type      = size_t;
   using for_all_args   = std::tuple<Item>;
   using container_type = ygm::container::bag_tag;
+  using ptr_type       = typename ygm::ygm_ptr<self_type>;
   using iterator       = typename local_container_type::iterator;
   using const_iterator = typename local_container_type::const_iterator;
 
@@ -55,7 +56,10 @@ class bag : public detail::base_async_insert_value<bag<Item>, std::tuple<Item>>,
    *
    * @param comm Communicator to use for communication
    */
-  bag(ygm::comm &comm) : m_comm(comm), pthis(this), partitioner(comm) {
+  bag(ygm::comm &comm)
+      : m_comm(comm),
+        pthis(this, ygm::max(ptr_type::next_index(), comm)),
+        partitioner(comm) {
     m_comm.log(log_level::info, "Creating ygm::container::bag");
     pthis.check(m_comm);
   }
@@ -68,7 +72,9 @@ class bag : public detail::base_async_insert_value<bag<Item>, std::tuple<Item>>,
    * @details Initializer list is assumed to be replicated on all ranks.
    */
   bag(ygm::comm &comm, std::initializer_list<Item> l)
-      : m_comm(comm), pthis(this), partitioner(comm) {
+      : m_comm(comm),
+        pthis(this, ygm::max(ptr_type::next_index(), comm)),
+        partitioner(comm) {
     m_comm.log(log_level::info, "Creating ygm::container::bag");
     pthis.check(m_comm);
     if (m_comm.rank0()) {
@@ -90,7 +96,9 @@ class bag : public detail::base_async_insert_value<bag<Item>, std::tuple<Item>>,
   bag(ygm::comm &comm, const STLContainer &cont)
     requires detail::STLContainer<STLContainer> &&
                  std::convertible_to<typename STLContainer::value_type, Item>
-      : m_comm(comm), pthis(this), partitioner(comm) {
+      : m_comm(comm),
+        pthis(this, ygm::max(ptr_type::next_index(), comm)),
+        partitioner(comm) {
     m_comm.log(log_level::info, "Creating ygm::container::bag");
     pthis.check(m_comm);
 
@@ -113,7 +121,9 @@ class bag : public detail::base_async_insert_value<bag<Item>, std::tuple<Item>>,
   bag(ygm::comm &comm, const YGMContainer &yc)
     requires detail::HasForAll<YGMContainer> &&
                  detail::SingleItemTuple<typename YGMContainer::for_all_args>
-      : m_comm(comm), pthis(this), partitioner(comm) {
+      : m_comm(comm),
+        pthis(this, ygm::max(ptr_type::next_index(), comm)),
+        partitioner(comm) {
     m_comm.log(log_level::info, "Creating ygm::container::bag");
     pthis.check(m_comm);
 
@@ -129,7 +139,7 @@ class bag : public detail::base_async_insert_value<bag<Item>, std::tuple<Item>>,
 
   bag(const self_type &other)
       : m_comm(other.comm()),
-        pthis(this),
+        pthis(this, ygm::max(ptr_type::next_index(), other.comm())),
         m_local_bag(other.m_local_bag),
         partitioner(other.comm()) {
     m_comm.log(log_level::info, "Creating ygm::container::bag");
@@ -138,7 +148,7 @@ class bag : public detail::base_async_insert_value<bag<Item>, std::tuple<Item>>,
 
   bag(self_type &&other) noexcept
       : m_comm(other.comm()),
-        pthis(this),
+        pthis(this, ygm::max(ptr_type::next_index(), other.comm())),
         m_local_bag(std::move(other.m_local_bag)),
         partitioner(other.comm()) {
     m_comm.log(log_level::info, "Creating ygm::container::bag");
@@ -452,9 +462,9 @@ class bag : public detail::base_async_insert_value<bag<Item>, std::tuple<Item>>,
    */
   void local_swap(self_type &other) { m_local_bag.swap(other.m_local_bag); }
 
-  ygm::comm                       &m_comm;
-  typename ygm::ygm_ptr<self_type> pthis;
-  local_container_type             m_local_bag;
+  ygm::comm           &m_comm;
+  ptr_type             pthis;
+  local_container_type m_local_bag;
 
  public:
   detail::round_robin_partitioner partitioner;

@@ -250,6 +250,7 @@ get_file_paths(
 class parquet_parser {
  private:
   using self_type = parquet_parser;
+  using ptr_type  = typename ygm::ygm_ptr<self_type>;
 
  public:
   // List of C++ types supported by this parser
@@ -269,7 +270,7 @@ class parquet_parser {
 
   parquet_parser(ygm::comm &_comm, const std::vector<std::string> &stringpaths,
                  const bool recursive = false)
-      : m_comm(_comm), pthis(this) {
+      : m_comm(_comm), pthis(this, ygm::max(ptr_type::next_index(), _comm)) {
     pthis.check(m_comm);
     init(stringpaths, recursive);
   }
@@ -700,7 +701,7 @@ class parquet_parser {
   }
 
   ygm::comm                      &m_comm;
-  ygm::ygm_ptr<self_type>         pthis;
+  ptr_type                        pthis;
   std::vector<stdfs::path>        m_nlocal_paths;
   std::vector<stdfs::path>        m_global_paths;
   std::vector<column_schema_type> m_col_schema;

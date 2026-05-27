@@ -69,7 +69,10 @@ class map
    * @param comm Communicator to use for communication
    */
   map(ygm::comm& comm)
-      : m_comm(comm), pthis(this), m_default_value(), partitioner(comm) {
+      : m_comm(comm),
+        pthis(this, ygm::max(ptr_type::next_index(), comm)),
+        m_default_value(),
+        partitioner(comm) {
     m_comm.log(log_level::info, "Creating ygm::container::map");
     pthis.check(m_comm);
   }
@@ -82,7 +85,7 @@ class map
    */
   map(ygm::comm& comm, const mapped_type& default_value)
       : m_comm(comm),
-        pthis(this),
+        pthis(this, ygm::max(ptr_type::next_index(), comm)),
         m_default_value(default_value),
         partitioner(comm) {
     m_comm.log(log_level::info, "Creating ygm::container::map");
@@ -97,7 +100,10 @@ class map
    * @details Initializer list is assumed to be replicated on all ranks.
    */
   map(ygm::comm& comm, std::initializer_list<std::pair<Key, Value>> l)
-      : m_comm(comm), pthis(this), m_default_value(), partitioner(comm) {
+      : m_comm(comm),
+        pthis(this, ygm::max(ptr_type::next_index(), comm)),
+        m_default_value(),
+        partitioner(comm) {
     m_comm.log(log_level::info, "Creating ygm::container::map");
     pthis.check(m_comm);
     if (m_comm.rank0()) {
@@ -119,7 +125,10 @@ class map
     requires detail::STLContainer<STLContainer> &&
                  std::convertible_to<typename STLContainer::value_type,
                                      std::pair<Key, Value>>
-      : m_comm(comm), pthis(this), m_default_value(), partitioner(comm) {
+      : m_comm(comm),
+        pthis(this, ygm::max(ptr_type::next_index(), comm)),
+        m_default_value(),
+        partitioner(comm) {
     m_comm.log(log_level::info, "Creating ygm::container::map");
     pthis.check(m_comm);
 
@@ -142,7 +151,10 @@ class map
   map(ygm::comm& comm, const YGMContainer& yc)
     requires detail::HasForAll<YGMContainer> &&
                  detail::SingleItemTuple<typename YGMContainer::for_all_args>
-      : m_comm(comm), pthis(this), m_default_value(), partitioner(comm) {
+      : m_comm(comm),
+        pthis(this, ygm::max(ptr_type::next_index(), comm)),
+        m_default_value(),
+        partitioner(comm) {
     m_comm.log(log_level::info, "Creating ygm::container::map");
     pthis.check(m_comm);
 
@@ -160,7 +172,7 @@ class map
 
   map(const self_type& other)
       : m_comm(other.comm()),
-        pthis(this),
+        pthis(this, ygm::max(ptr_type::next_index(), other.comm())),
         m_local_map(other.m_local_map),
         m_default_value(other.m_default_value),
         partitioner(other.comm()) {
@@ -170,7 +182,7 @@ class map
 
   map(self_type&& other) noexcept
       : m_comm(other.comm()),
-        pthis(this),
+        pthis(this, ygm::max(ptr_type::next_index(), other.comm())),
         m_local_map(std::move(other.m_local_map)),
         m_default_value(other.m_default_value),
         partitioner(other.comm()) {
@@ -609,10 +621,10 @@ class map
   void local_swap(self_type& other) { m_local_map.swap(other.m_local_map); }
 
  private:
-  ygm::comm&                       m_comm;
-  typename ygm::ygm_ptr<self_type> pthis;
-  local_container_type             m_local_map;
-  mapped_type                      m_default_value;
+  ygm::comm&           m_comm;
+  ptr_type             pthis;
+  local_container_type m_local_map;
+  mapped_type          m_default_value;
 
  public:
   detail::hash_partitioner<detail::hash<key_type>> partitioner;

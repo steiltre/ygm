@@ -31,6 +31,7 @@ template <typename Partitioner =
 class multi_output {
  public:
   using self_type = multi_output<Partitioner>;
+  using ptr_type  = typename ygm::ygm_ptr<self_type>;
 
   /**
    * @brief Construct a multi_output object
@@ -46,7 +47,7 @@ class multi_output {
   multi_output(ygm::comm &comm, std::string filename_prefix,
                size_t buffer_length = 1024 * 1024, bool append = false)
       : m_comm(comm),
-        pthis(this),
+        pthis(this, ygm::max(ptr_type::next_index(), comm)),
         m_prefix_path(filename_prefix),
         m_buffer_length(buffer_length),
         m_append_flag(append) {
@@ -257,7 +258,7 @@ class multi_output {
   }
 
   ygm::comm                               &m_comm;
-  typename ygm::ygm_ptr<self_type>         pthis;
+  ptr_type                                 pthis;
   fs::path                                 m_prefix_path;
   size_t                                   m_buffer_length;
   bool                                     m_append_flag;

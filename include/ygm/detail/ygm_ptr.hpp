@@ -21,6 +21,24 @@ class ygm_ptr {
   T &operator*() const { return *sptrs[idx]; }
 
   /**
+   * @brief Construct a new ygm ptr object with a given pointer index
+   *
+   * @warning The user is responsible for ensuring all processes have completed
+   * constructing a ygm_ptr before using in an async manner.   For example, use
+   * ygm_ptr::check(comm&);
+   *
+   * @param t
+   * @param index Index to use in sptrs vector for item
+   */
+  ygm_ptr(T *t, size_t index) {
+    if (sptrs.size() <= index) {
+      sptrs.resize(index + 1);
+    }
+    sptrs[index] = t;
+    idx          = index;
+  }
+
+  /**
    * @brief Construct a new ygm ptr object
    *
    * @warning The user is responsible for ensuring all processes have completed
@@ -29,12 +47,14 @@ class ygm_ptr {
    *
    * @param t
    */
-  ygm_ptr(T *t) {
-    idx = sptrs.size();
-    sptrs.push_back(t);
-  }
+  ygm_ptr(T *t) : ygm_ptr(t, sptrs.size()) {}
 
   ygm_ptr(const ygm::ygm_ptr<T> &t) { idx = t.idx; }
+
+  ygm_ptr &operator=(const ygm::ygm_ptr<T> &t) {
+    idx = t.idx;
+    return *this;
+  }
 
   T *get_raw_pointer() { return operator->(); }
 
@@ -46,6 +66,8 @@ class ygm_ptr {
   void serialize(Archive &archive) {
     archive(idx);
   }
+
+  static size_t next_index() { return sptrs.size(); }
 
  private:
   uint32_t                idx;
