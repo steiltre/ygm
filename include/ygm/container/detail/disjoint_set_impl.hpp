@@ -127,7 +127,9 @@ class disjoint_set_impl {
   };
 
   disjoint_set_impl(ygm::comm &comm, const size_t cache_size)
-      : m_comm(comm), pthis(this, ygm::max(ptr_type::next_index(), comm), m_cache(cache_size) {
+      : m_comm(comm),
+        pthis(this, ygm::max(ptr_type::next_index(), comm)),
+        m_cache(cache_size) {
     m_comm.log(log_level::info, "Creating ygm::container::disjoint_set");
     pthis.check(m_comm);
   }
@@ -137,8 +139,7 @@ class disjoint_set_impl {
     m_comm.barrier();
   }
 
-  typename ygm::ygm_ptr<self_type> get_ygm_ptr() const {
-    return pthis; }
+  typename ygm::ygm_ptr<self_type> get_ygm_ptr() const { return pthis; }
 
   template <typename Visitor, typename... VisitorArgs>
   void async_visit(const value_type &item, Visitor visitor,
@@ -710,8 +711,7 @@ class disjoint_set_impl {
     return max(local_max, m_comm);
   }
 
-  ygm::comm &comm() {
-    return m_comm; }
+  ygm::comm &comm() { return m_comm; }
 
  private:
   const std::pair<value_type, rank_type> walk_cache(const value_type &item,
@@ -742,9 +742,9 @@ class disjoint_set_impl {
  protected:
   disjoint_set_impl() = delete;
 
-  ygm::comm        &m_comm;
-  ptr_type pthis;
-  item_map_type     m_local_item_map;
+  ygm::comm    &m_comm;
+  ptr_type      pthis;
+  item_map_type m_local_item_map;
 
   hash_cache m_cache;
 
