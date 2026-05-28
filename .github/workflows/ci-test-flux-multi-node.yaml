@@ -20,7 +20,7 @@ jobs:
         mpi-type: [mpich, openmpi]
         build-type: [Release, Debug]
         env:
-          FLUX_VERSION: 0.81.0
+          FLUX_VERSION: "0.81.0"
           SPACK_DIR: "/home/runner/work/spack"
         exclude:
           - os: ubuntu-22.04
