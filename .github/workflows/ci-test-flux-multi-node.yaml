@@ -64,7 +64,7 @@ jobs:
       - name: Install flux from source
         run: |
           mkdir ${FLUX_DIR}
-          wget "${FLUX_DOWNLOAD_URL}/v${FLUX_VERSION}/flux-core-${FLUX_VERSION}.tar.gz ${FLUX_DIR}/flux.tar.gz"
+          wget "${FLUX_DOWNLOAD_URL}/v${FLUX_VERSION}/flux-core-${FLUX_VERSION}.tar.gz" "${FLUX_DIR}/flux.tar.gz"
           cd ${FLUX_DIR}
           tar -xzvf flux-core-${FLUX_VERSION}.tar.gz
           cd flux-core-${FLUX_VERSION}
