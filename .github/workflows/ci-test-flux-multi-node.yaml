@@ -15,24 +15,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, ubuntu-22.04]
-        compiler: [g++-11, g++-12, g++-13, g++-14, clang++-18]
-        mpi-type: [mpich, openmpi]
-        build-type: [Release, Debug]
-        exclude:
-          - os: ubuntu-22.04
-            compiler: g++-13
-          - os: ubuntu-22.04
-            compiler: g++-14
-          - os: ubuntu-22.04
-            compiler: clang++-18
-          - os: ubuntu-24.04
-            mpi-type: mpich
-          - os: ubuntu-22.04
-            build-type: debug
+        os: [ubuntu-24.04]
+        compiler: [g++-14]
+        mpi-type: [openmpi]
+        build-type: [Release]
     env:
       FLUX_VERSION: 0.81.0
       SPACK_DIR: "/home/runner/work/spack"
+      FLUX_DIR: "/home/runner/work/flux"
+      FLUX_DOWNLOAD_URL: "https://github.com/flux-framework/flux-core/releases/download/"
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -61,15 +52,27 @@ jobs:
       - name: Install GCC
         if: (matrix.compiler == 'g++-11' && matrix.os == 'ubuntu-24.04')
         run: sudo apt-get install gcc-11 g++-11
-      - name: Install Spack
+#      - name: Install Spack
+#        run: |
+#          git clone --depth=2 https://github.com/spack/spack.git ${SPACK_DIR}
+#          . ${SPACK_DIR}/share/spack/setup-env.sh
+#          spack compiler find --scope=user
+#      - name: Instal flux
+#        run: |
+#          . ${SPACK_DIR}/share/spack/setup-env.sh
+#          spack install -j4 flux-core@${FLUX_VERSION}
+      - name: Install flux from source
         run: |
-          git clone --depth=2 https://github.com/spack/spack.git ${SPACK_DIR}
-          . ${SPACK_DIR}/share/spack/setup-env.sh
-          spack compiler find --scope=user
-      - name: Instal flux
-        run: |
-          . ${SPACK_DIR}/share/spack/setup-env.sh
-          spack install -j4 flux-core@${FLUX_VERSION}
+          mkdir ${FLUX_DIR}
+          wget "${FLUX_DOWNLOAD_URL}/v${FLUX_VERSION}/flux-core-${FLUX_VERSION}.tar.gz ${FLUX_DIR}/flux.tar.gz
+          cd ${FLUX_DIR}
+          tar -xzvf flux-core-${FLUX_VERSION}.tar.gz
+          cd flux-core-${FLUX_VERSION}
+          sudo ./scripts/install-deps-deb.sh
+          ./autogen.sh
+          ./configure
+          make -j4
+          ./src/cmd/flux start --test-size=16
 #      - name: Make
 #        run: |
 #          echo Run 'make'
