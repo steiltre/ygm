@@ -69,7 +69,6 @@ jobs:
           tar -xzvf flux-core-${FLUX_VERSION}.tar.gz
           cd flux-core-${FLUX_VERSION}
           sudo ./scripts/install-deps-deb.sh
-          ./autogen.sh
           ./configure
           make -j4
           ./src/cmd/flux start --test-size=16
