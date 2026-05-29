@@ -64,8 +64,8 @@ jobs:
       - name: Install flux from source
         run: |
           mkdir ${FLUX_DIR}
-          wget "${FLUX_DOWNLOAD_URL}/v${FLUX_VERSION}/flux-core-${FLUX_VERSION}.tar.gz"
           cd ${FLUX_DIR}
+          wget "${FLUX_DOWNLOAD_URL}/v${FLUX_VERSION}/flux-core-${FLUX_VERSION}.tar.gz"
           tar -xzvf flux-core-${FLUX_VERSION}.tar.gz
           cd flux-core-${FLUX_VERSION}
           sudo ./scripts/install-deps-deb.sh
