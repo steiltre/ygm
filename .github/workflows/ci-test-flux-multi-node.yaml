@@ -71,7 +71,7 @@ jobs:
           sudo ./scripts/install-deps-deb.sh
           ./configure
           make -j4
-          ./src/cmd/flux start --test-size=16
+          ./src/cmd/flux start --test-size=16 "flux run -N 16 --tasks-per-node 2 hostname"
 #      - name: Make
 #        run: |
 #          echo Run 'make'
