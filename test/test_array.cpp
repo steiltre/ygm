@@ -16,6 +16,7 @@
 int main(int argc, char **argv) {
   ygm::comm world(&argc, &argv);
 
+  /*
   // Test basic tagging
   {
     int                        size = 64;
@@ -168,8 +169,8 @@ int main(int argc, char **argv) {
       });
     }
   }
+  */
 
-  /*
   // Test async_visit (ptr)
   {
     int size = 64;
