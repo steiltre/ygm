@@ -85,4 +85,4 @@ jobs:
         run: |
           echo Run 'make test' with OpenMPI, ${{ matrix.compiler }}
           cd build
-          ${FLUX_DIR}/src/cmd/flux start --test-size=16 "OMPI_MCA_rmaps_base_oversubscribe=1 ctest -VV -C ${{ matrix.build-type }}"
+          ${FLUX_DIR}/flux-core-${FLUX_VERSION}/src/cmd/flux start --test-size=16 "OMPI_MCA_rmaps_base_oversubscribe=1 ctest -VV -C ${{ matrix.build-type }}"
