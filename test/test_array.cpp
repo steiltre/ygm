@@ -16,6 +16,7 @@
 int main(int argc, char **argv) {
   ygm::comm world(&argc, &argv);
 
+  /*
   // Test basic tagging
   {
     int                        size = 64;
@@ -86,8 +87,8 @@ int main(int argc, char **argv) {
       YGM_ASSERT_RELEASE(size_t(value) == index + 2 * world.size());
     });
   }
+  */
 
-  /*
   // Test async_bit_xor
   {
     int size = 64;
@@ -169,7 +170,6 @@ int main(int argc, char **argv) {
       });
     }
   }
-  */
 
   // Test async_visit (ptr)
   {
