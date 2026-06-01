@@ -1,4 +1,4 @@
-name: CI Test Multi-Node
+name: CI Test Multinode
 
 on:
   pull_request:
@@ -78,7 +78,7 @@ jobs:
           ${{ matrix.compiler }} --version
           mkdir build
           cd build
-          cmake ../ -DYGM_BUILD_TESTS=On -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} -DCMAKE_CXX_COMPILER=${{ matrix.compiler }} -DBOOST_ROOT=~/boost_1_81_0 -DYGM_INSTALL_PARQUET=ON -DYGM_TEST_NUM_NODES=2 -DYGM_TEST_TASKS_PER_NODE=2 -DTEST_WITH_FLUX=On
+          cmake ../ -DYGM_BUILD_TESTS=On -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} -DCMAKE_CXX_COMPILER=${{ matrix.compiler }} -DBOOST_ROOT=~/boost_1_81_0 -DYGM_INSTALL_PARQUET=ON -DYGM_TEST_NUM_NODES=2 -DYGM_TEST_TASKS_PER_NODE=1 -DTEST_WITH_FLUX=On
           make -j4
       - name: Make test (OpenMPI)
         if: matrix.mpi-type == 'openmpi'
