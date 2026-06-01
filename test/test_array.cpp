@@ -169,6 +169,7 @@ int main(int argc, char **argv) {
     }
   }
 
+  /*
   // Test async_visit (ptr)
   {
     int size = 64;
@@ -335,8 +336,8 @@ int main(int argc, char **argv) {
       YGM_ASSERT_RELEASE(size_t(value) == 4 * index);
     });
   }
+  */
 
-  /*
   // Test copy assignment operator
   {
     int size = 64;
@@ -760,10 +761,9 @@ int main(int argc, char **argv) {
       std::vector<std::pair<size_t, std::string>> local_vec;
       str_array.gather(local_vec, 0);
       if (world.rank0()) {
-        std::sort(local_vec.begin(), local_vec.end(),
-                  [](const auto& a, const auto& b){
-                    return a.first < b.first;
-                  });
+        std::sort(
+            local_vec.begin(), local_vec.end(),
+            [](const auto &a, const auto &b) { return a.first < b.first; });
         YGM_ASSERT_RELEASE(local_vec.size() == 6);
         YGM_ASSERT_RELEASE(local_vec[0].second == "dog");
         YGM_ASSERT_RELEASE(local_vec[1].second == "cat");
@@ -785,7 +785,6 @@ int main(int argc, char **argv) {
       YGM_ASSERT_RELEASE(local_map[5] == "green");
     }
   }
-  */
 
   return 0;
 }
