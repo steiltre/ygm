@@ -337,7 +337,6 @@ int main(int argc, char **argv) {
       YGM_ASSERT_RELEASE(size_t(value) == 4 * index);
     });
   }
-  */
 
   // Test copy assignment operator
   {
