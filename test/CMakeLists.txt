@@ -26,6 +26,10 @@ function (add_ygm_test test_name)
     target_link_libraries(${test_exe} PUBLIC ygm::ygm)
     if (${TEST_WITH_SLURM})
         add_test(${test_exe} "srun" "${CMAKE_CURRENT_BINARY_DIR}/${test_exe}")
+    elseif (${TEST_WITH_FLUX})
+        add_test(NAME ${test_exe} COMMAND "flux" "run" "-N" ${YGM_TEST_NUM_NODES} "--tasks-per-node" ${YGM_TEST_TASKS_PER_NODE}
+          "${CMAKE_CURRENT_BINARY_DIR}/${test_exe}"
+        )
     else ()
         add_test(${test_exe} ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} "4"
                  ${MPIEXEC_PREFLAGS} "${CMAKE_CURRENT_BINARY_DIR}/${test_exe}"
