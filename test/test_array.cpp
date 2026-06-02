@@ -87,7 +87,6 @@ int main(int argc, char **argv) {
     });
   }
 
-  /*
   // Test async_bit_xor
   {
     int size = 64;
@@ -126,6 +125,7 @@ int main(int argc, char **argv) {
     });
   }
 
+  /*
   // Test async_increment
   {
     int size = 64;
