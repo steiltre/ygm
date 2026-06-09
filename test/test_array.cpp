@@ -64,7 +64,6 @@ int main(int argc, char **argv) {
     const_for_loop(arr);
   }
 
-  /*
   // Test async_binary_op_update_value
   {
     int size = 32;
@@ -88,6 +87,7 @@ int main(int argc, char **argv) {
     });
   }
 
+  /*
   // Test async_bit_xor
   {
     int size = 64;
