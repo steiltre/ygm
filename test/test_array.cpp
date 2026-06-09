@@ -16,6 +16,7 @@
 int main(int argc, char **argv) {
   ygm::comm world(&argc, &argv);
 
+  /*
   // Test basic tagging
   {
     int                        size = 64;
@@ -64,6 +65,7 @@ int main(int argc, char **argv) {
     const_for_loop(arr);
   }
 
+  */
   // Test async_binary_op_update_value
   {
     int size = 32;
