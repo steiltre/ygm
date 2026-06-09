@@ -32,7 +32,6 @@ int main(int argc, char **argv) {
             std::tuple<decltype(arr)::key_type, decltype(arr)::mapped_type>>);
   }
 
-  /*
   // Test async_set
   {
     int                        size = 64;
@@ -40,31 +39,30 @@ int main(int argc, char **argv) {
 
     if (world.rank0()) {
       for (int i = 0; i < size; ++i) {
-        arr.async_set(i, i);
+        // arr.async_set(i, i);
       }
     }
 
     arr.for_all([](const auto index, const auto value) {
-      YGM_ASSERT_RELEASE(index == size_t(value));
+      // YGM_ASSERT_RELEASE(index == size_t(value));
     });
 
     // test range-based for
     for (const auto &index_item : arr) {
-      YGM_ASSERT_RELEASE(index_item.index == size_t(index_item.value));
+      // YGM_ASSERT_RELEASE(index_item.index == size_t(index_item.value));
     }
 
     for (auto iter = arr.cbegin(); iter != arr.cend(); ++iter) {
-      YGM_ASSERT_RELEASE(iter->index == size_t(iter->value));
+      // YGM_ASSERT_RELEASE(iter->index == size_t(iter->value));
     }
 
     auto const_for_loop = [](const ygm::container::array<int> &c_arr) {
       for (const auto &index_item : c_arr) {
-        YGM_ASSERT_RELEASE(index_item.index == size_t(index_item.value));
+        // YGM_ASSERT_RELEASE(index_item.index == size_t(index_item.value));
       }
     };
     const_for_loop(arr);
   }
-  */
 
   // Test async_binary_op_update_value
   {
