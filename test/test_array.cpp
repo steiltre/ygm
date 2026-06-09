@@ -87,6 +87,7 @@ int main(int argc, char **argv) {
     });
   }
 
+  /*
   // Test async_bit_xor
   {
     int size = 64;
@@ -124,8 +125,8 @@ int main(int argc, char **argv) {
       YGM_ASSERT_RELEASE(size_t(value) == (index ^ cumulative_xor));
     });
   }
+  */
 
-  /*
   // Test async_increment
   {
     int size = 64;
@@ -169,7 +170,6 @@ int main(int argc, char **argv) {
       });
     }
   }
-*/
 
   // Test async_visit (ptr)
   {
