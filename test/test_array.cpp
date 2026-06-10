@@ -16,6 +16,9 @@
 int main(int argc, char **argv) {
   ygm::comm world(&argc, &argv);
 
+  world.set_logger_target(ygm::logger_target::stdout);
+  world.set_log_level(ygm::log_level::debug);
+
   /*
   // Test basic tagging
   {
