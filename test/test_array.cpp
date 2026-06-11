@@ -14,6 +14,7 @@
 #include <vector>
 
 int main(int argc, char **argv) {
+  setenv("YGM_COMM_ISSEND_FREQ", "0", 1);
   ygm::comm world(&argc, &argv);
 
   world.set_logger_target(ygm::logger_target::stdout);
