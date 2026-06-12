@@ -935,6 +935,7 @@ inline void comm::flush_send_buffer(int dest) {
       YGM_ASSERT_MPI(MPI_Issend(request.buffer->data(), request.buffer->size(),
                                 MPI_BYTE, dest, YGMTag::buffer_content,
                                 comm_send, &(request.request)));
+      log(log_level::debug, "Returned from MPI_Issend");
     } else {
       log(log_level::debug, "MPI_Isend " +
                                 std::to_string(request.buffer->size()) +
@@ -1562,16 +1563,9 @@ inline bool comm::process_receive_queue() {
     MPI_Status twin_status[2];
     {
       auto timer = m_stats.waitsome_isend_irecv();
-      int  test_loops{0};
       while (outcount == 0) {
-        ++test_loops;
         YGM_ASSERT_MPI(
             MPI_Testsome(2, twin_req, &outcount, twin_indices, twin_status));
-
-        if (test_loops > 1024) {
-          std::this_thread::yield();
-          test_loops = 0;
-        }
       }
     }
     for (int i = 0; i < outcount; ++i) {
