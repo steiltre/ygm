@@ -10,7 +10,15 @@
 		"vscode": {
 			"extensions": [
 				"llvm-vs-code-extensions.vscode-clangd"
-			]
+			],
+			"settings": {
+				"[cpp]": {
+					"editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd"
+				},
+				"clangd.checkUpdates": true,
+				"cmake.debugConfig": { "MIMode": "lldb" },
+				"cmake.options.statusBarVisibility": "compact"
+			}
 		}
 	},
 	"mounts": [
