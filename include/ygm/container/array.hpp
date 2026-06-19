@@ -17,6 +17,7 @@
 #include <ygm/container/detail/base_iteration.hpp>
 #include <ygm/container/detail/base_iterators.hpp>
 #include <ygm/container/detail/base_misc.hpp>
+#include <ygm/container/detail/base_serialize.hpp>
 #include <ygm/container/detail/block_partitioner.hpp>
 
 namespace ygm::container {
@@ -41,9 +42,13 @@ class array
       public detail::base_iteration_key_value<array<Value, Index>,
                                               std::tuple<Index, Value>>,
       public detail::base_async_reduce<array<Value, Index>,
-                                       std::tuple<Index, Value>> {
+                                       std::tuple<Index, Value>>,
+      public detail::base_serialize<array<Value, Index>,
+                                    std::tuple<Index, Value>> {
   friend struct detail::base_misc<array<Value, Index>,
                                   std::tuple<Index, Value>>;
+  friend struct detail::base_serialize<array<Value, Index>,
+                                       std::tuple<Index, Value>>;
 
  public:
   using self_type      = array<Value, Index>;
@@ -1010,6 +1015,10 @@ class array
   }
 
  private:
+  void extend_manifest(boost::json::object& manifest_json) const {
+    manifest_json["size"] = size();
+  }
+
   ygm::comm&                       m_comm;
   typename ygm::ygm_ptr<self_type> pthis;
   size_type                        m_global_size;

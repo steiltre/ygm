@@ -742,7 +742,7 @@ int main(int argc, char **argv) {
   }
 
   //
-  // Test gather 
+  // Test gather
   {
     ygm::container::array<std::string> str_array(world, 6);
 
@@ -759,10 +759,9 @@ int main(int argc, char **argv) {
       std::vector<std::pair<size_t, std::string>> local_vec;
       str_array.gather(local_vec, 0);
       if (world.rank0()) {
-        std::sort(local_vec.begin(), local_vec.end(), 
-                  [](const auto& a, const auto& b){
-                    return a.first < b.first;
-                  });
+        std::sort(
+            local_vec.begin(), local_vec.end(),
+            [](const auto &a, const auto &b) { return a.first < b.first; });
         YGM_ASSERT_RELEASE(local_vec.size() == 6);
         YGM_ASSERT_RELEASE(local_vec[0].second == "dog");
         YGM_ASSERT_RELEASE(local_vec[1].second == "cat");
@@ -785,6 +784,22 @@ int main(int argc, char **argv) {
     }
   }
 
+  //
+  // Test serialization
+  {
+    constexpr int              size = 10;
+    ygm::container::array<int> arr(world, size);
+
+    if (world.rank0()) {
+      for (int i = 0; i < size; ++i) {
+        arr.async_insert(i, 2 * i);
+      }
+    }
+
+    world.barrier();
+
+    arr.write_manifest("/tmp/manifest.json");
+  }
 
   return 0;
 }
