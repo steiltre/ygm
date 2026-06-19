@@ -445,10 +445,11 @@ class map
    * @param keys Keys local rank wants to collect values for
    * @return `std::map` of provided keys and their values
    */
-  template <typename STLKeyContainer>
-  std::map<key_type, mapped_type> gather_keys(const STLKeyContainer& keys) {
-    std::map<key_type, mapped_type>         to_return;
-    static std::map<key_type, mapped_type>* sto_return;
+  template <typename ReturnMap = std::map<key_type, mapped_type>>
+    requires requires(ReturnMap s, key_type k, mapped_type v) { s.insert({k,v}); }
+  ReturnMap gather_keys(std::ranges::input_range auto&& range) {
+    ReturnMap         to_return;
+    static ReturnMap* sto_return;
     sto_return = &to_return;
 
     auto fetcher = [](auto pcomm, int from, const key_type& key, auto pmap) {
@@ -463,7 +464,7 @@ class map
     };
 
     m_comm.barrier();
-    for (const auto& key : keys) {
+    for (const auto& key : range) {
       int o = partitioner.owner(key);
       m_comm.async(o, fetcher, m_comm.rank(), key, pthis);
     }
