@@ -140,7 +140,10 @@ endif ()
 #
 add_library(ygm INTERFACE)
 add_library(ygm::ygm ALIAS ygm)
-target_compile_features(ygm INTERFACE cxx_std_20)
+target_compile_features(ygm INTERFACE cxx_std_26)
+target_compile_options(ygm INTERFACE "-freflection-latest" "-stdlib=libc++")
+set(BUILD_RPATH home/trevor/git_repos/github/clang-p2996/install/lib/x86_64-unknown-linux-gnu)
+target_link_options(ygm INTERFACE -stdlib=libc++ -Wl,-rpath=/home/trevor/git_repos/github/clang-p2996/install/lib/x86_64-unknown-linux-gnu)
 target_include_directories(
     ygm INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
                   $<INSTALL_INTERFACE:include>

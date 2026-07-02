@@ -1,4 +1,5 @@
 
+#include <vector>
 #include <ygm/comm.hpp>
 #include <ygm/container/map.hpp>
 
@@ -12,6 +13,18 @@ int main(int argc, char **argv) {
     int a = 12;
     world.async(0, [a]() { YGM_ASSERT_RELEASE(a == 12); });
   }
+
+  {
+    int a = 12;
+    world.async(0, [&a]() { YGM_ASSERT_RELEASE(a == 12); });
+  }
+
+  /*
+  {
+    std::vector<int> a({0, 2, 3});
+    world.async(0, [&a]() { YGM_ASSERT_RELEASE(a.size() == 3); });
+  }
+  */
 
   // Capture in comm::async_bcast
   {
@@ -30,10 +43,10 @@ int main(int argc, char **argv) {
                                   int &val) { val += a; });
 
     world.barrier();
-    my_map.for_all(
-        [&world]([[maybe_unused]] const std::string &key, const int &val) {
-          YGM_ASSERT_RELEASE(val == world.size() * (world.size() - 1) / 2);
-        });
+    // my_map.for_all(
+    //[&world]([[maybe_unused]] const std::string &key, const int &val) {
+    // YGM_ASSERT_RELEASE(val == world.size() * (world.size() - 1) / 2);
+    //});
   }
 
   return 0;

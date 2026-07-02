@@ -319,6 +319,9 @@ class comm {
   size_t pack_lambda_generic(ygm::detail::byte_vector &packed, Lambda &&l,
                              RemoteLogicLambda rll, const PackArgs &...args);
 
+  template <typename Lambda>
+  void pack_lambda_with_captures(Lambda &&l, ygm::detail::byte_vector &packed);
+
   void queue_message_bytes(const ygm::detail::byte_vector &packed,
                            const int                       dest);
 

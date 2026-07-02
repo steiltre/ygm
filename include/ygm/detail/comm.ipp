@@ -7,6 +7,7 @@
 #include <ygm/detail/collective.hpp>
 #include <ygm/detail/lambda_compliance.hpp>
 #include <ygm/detail/meta/functional.hpp>
+#include <ygm/detail/reflections.hpp>
 #include <ygm/detail/ygm_cereal_archive.hpp>
 #include <ygm/detail/ygm_ptr.hpp>
 #include <ygm/version.hpp>
@@ -1291,7 +1292,8 @@ inline size_t comm::pack_lambda_generic(ygm::detail::byte_vector &packed,
   }
 
   if constexpr (!std::is_empty<std::remove_reference_t<Lambda>>::value) {
-    packed.push_bytes(&l, sizeof(std::remove_reference_t<Lambda>));
+    pack_lambda_with_captures(l, packed);
+    // packed.push_bytes(&l, sizeof(std::remove_reference_t<Lambda>));
   }
 
   if constexpr (!std::is_empty<std::tuple<PackArgs...>>::value) {
@@ -1300,6 +1302,46 @@ inline size_t comm::pack_lambda_generic(ygm::detail::byte_vector &packed,
     oarchive(tuple_args);
   }
   return packed.size() - size_before;
+}
+
+template <typename Lambda>
+inline void comm::pack_lambda_with_captures(Lambda                  &&l,
+                                            ygm::detail::byte_vector &packed) {
+  cereal::YGMOutputArchive oarchive(packed);
+
+  constexpr auto lambda_layout = get_layout<std::remove_reference_t<Lambda>>();
+  template for (constexpr auto md : lambda_layout) {
+    if constexpr (not std::meta::is_reference_type(
+                      std::meta::type_of(md.info))) {
+      using member_pointer_type = [:std::meta::add_pointer(
+                                        std::meta::type_of(md.info)):];
+      std::byte *addr           = reinterpret_cast<std::byte *>(&l) + md.offset;
+      [:std::meta::add_pointer(std::meta::type_of(
+            md.info)):] p_captured_var =
+                            reinterpret_cast<member_pointer_type>(addr);
+
+      oarchive(*p_captured_var);
+    } else {
+      using member_ptr_t = [:std::meta::add_pointer(std::meta::add_pointer(
+                                 std::meta::remove_reference(
+                                     std::meta::type_of(md.info)))):];
+
+      std::byte   *addr = reinterpret_cast<std::byte *>(&l) + md.offset;
+      member_ptr_t pp_captured_var = reinterpret_cast<member_ptr_t>(addr);
+
+      oarchive(**pp_captured_var);
+    }
+  }
+
+  // auto lambda_layout = get_layout<Lambda>();
+
+  /*
+  template for (constexpr auto &member : lambda_layout) {
+    [:std::meta::add_pointer(std::meta::type_of(
+          member.info)):] p_member = ((void *)&l) + member.offset;
+    oarchive(*p_member);
+  }
+  */
 }
 
 /**
