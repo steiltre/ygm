@@ -787,18 +787,36 @@ int main(int argc, char **argv) {
   //
   // Test serialization
   {
-    constexpr int              size = 10;
-    ygm::container::array<int> arr(world, size);
+    std::string   serialization_path = "/tmp/serialized_array";
+    constexpr int size               = 10;
+    {
+      ygm::container::array<std::pair<int, double>> arr(world, size);
 
-    if (world.rank0()) {
-      for (int i = 0; i < size; ++i) {
-        arr.async_insert(i, 2 * i);
+      if (world.rank0()) {
+        for (int i = 0; i < size; ++i) {
+          arr.async_insert(i, std::make_pair(2 * i, 3.14));
+        }
       }
+
+      world.barrier();
+
+      arr.serialize(serialization_path);
     }
 
-    world.barrier();
+    //
+    // Test deserialization
+    {
+      ygm::container::array<std::pair<int, double>> arr(world, size);
 
-    arr.write_manifest("/tmp/manifest.json");
+      arr.deserialize(serialization_path);
+
+      YGM_ASSERT_RELEASE(arr.size() == size);
+
+      for (const auto &[key, val_pair] : arr) {
+        YGM_ASSERT_RELEASE((uint32_t)val_pair.first == 2 * key);
+        YGM_ASSERT_RELEASE(val_pair.second == 3.14);
+      }
+    }
   }
 
   return 0;

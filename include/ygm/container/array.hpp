@@ -1016,7 +1016,25 @@ class array
 
  private:
   void extend_manifest(boost::json::object& manifest_json) const {
-    manifest_json["size"] = size();
+    manifest_json["size"]        = size();
+    manifest_json["mapped_type"] = typeid(mapped_type).name();
+    manifest_json["key_type"]    = typeid(key_type).name();
+  }
+
+  void serialize_prologue(
+      std::filesystem::path& serialization_path,
+      detail::base_serialize<self_type, for_all_args>::manifest_t& manifest_obj)
+      const {
+    manifest_obj["size"]        = size();
+    manifest_obj["mapped_type"] = typeid(mapped_type).name();
+    manifest_obj["key_type"]    = typeid(key_type).name();
+  }
+
+  void deserialize_prologue(
+      std::filesystem::path& serialization_path,
+      detail::base_serialize<self_type, for_all_args>::manifest_t& manifest_obj)
+      const {
+    resize(manifest_obj["size"].as_uint64_t());
   }
 
   ygm::comm&                       m_comm;
