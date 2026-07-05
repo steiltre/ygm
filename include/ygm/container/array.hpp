@@ -1022,19 +1022,20 @@ class array
   }
 
   void serialize_prologue(
-      std::filesystem::path& serialization_path,
-      detail::base_serialize<self_type, for_all_args>::manifest_t& manifest_obj)
-      const {
+      [[maybe_unused]] const std::filesystem::path& serialization_path,
+      [[maybe_unused]] detail::base_serialize<
+          self_type, for_all_args>::manifest_t& manifest_obj) {
     manifest_obj["size"]        = size();
     manifest_obj["mapped_type"] = typeid(mapped_type).name();
     manifest_obj["key_type"]    = typeid(key_type).name();
   }
 
   void deserialize_prologue(
-      std::filesystem::path& serialization_path,
-      detail::base_serialize<self_type, for_all_args>::manifest_t& manifest_obj)
-      const {
-    resize(manifest_obj["size"].as_uint64_t());
+      [[maybe_unused]] const std::filesystem::path& serialization_path,
+      [[maybe_unused]] detail::base_serialize<
+          self_type, for_all_args>::manifest_t& manifest_obj) {
+    boost::json::value jv = manifest_obj["size"];
+    resize(jv.to_number<uint64_t>());
   }
 
   ygm::comm&                       m_comm;

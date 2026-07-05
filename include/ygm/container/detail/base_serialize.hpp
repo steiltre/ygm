@@ -19,7 +19,8 @@
 
 namespace ygm::container::detail {
 
-constexpr int manifest_version = 1;
+constexpr int         manifest_version = 1;
+constexpr std::string data_filename_prefix{"data_rank"};
 
 template <typename derived_type, typename for_all_args>
 struct base_serialize;
@@ -32,46 +33,52 @@ concept HasExtendManifest = requires(const T& v) {
 */
 
 template <typename T>
-concept HasCustomSerialize = requires(const T& v) {
+concept HasCustomSerialize = requires(T& v) {
   v.custom_serialize(
       std::declval<std::filesystem::path>(),
-      std::declval<base_serialize<T, typename T::for_all_args>::manifest_t>());
+      std::declval<
+          typename base_serialize<T, typename T::for_all_args>::manifest_t&>());
 };
 
 template <typename T>
-concept HasCustomDeserialize = requires(const T& v) {
+concept HasCustomDeserialize = requires(T& v) {
   v.custom_deserialize(
       std::declval<std::filesystem::path>(),
-      std::declval<base_serialize<T, typename T::for_all_args>::manifest_t>());
+      std::declval<
+          typename base_serialize<T, typename T::for_all_args>::manifest_t&>());
 };
 
 template <typename T>
-concept HasSerializePrologue = requires(const T& v) {
+concept HasSerializePrologue = requires(T& v) {
   v.serialize_prologue(
 
       std::declval<std::filesystem::path>(),
-      std::declval<base_serialize<T, typename T::for_all_args>::manifest_t>());
+      std::declval<
+          typename base_serialize<T, typename T::for_all_args>::manifest_t&>());
 };
 
 template <typename T>
-concept HasSerializeEpilogue = requires(const T& v) {
+concept HasSerializeEpilogue = requires(T& v) {
   v.serialize_epilogue(
       std::declval<std::filesystem::path>(),
-      std::declval<base_serialize<T, typename T::for_all_args>::manifest_t>());
+      std::declval<
+          typename base_serialize<T, typename T::for_all_args>::manifest_t&>());
 };
 
 template <typename T>
-concept HasDeserializePrologue = requires(const T& v) {
+concept HasDeserializePrologue = requires(T& v) {
   v.deserialize_prologue(
       std::declval<std::filesystem::path>(),
-      std::declval<base_serialize<T, typename T::for_all_args>::manifest_t>());
+      std::declval<
+          typename base_serialize<T, typename T::for_all_args>::manifest_t&>());
 };
 
 template <typename T>
-concept HasDeserializeEpilogue = requires(const T& v) {
+concept HasDeserializeEpilogue = requires(T& v) {
   v.deserialize_epilogue(
       std::declval<std::filesystem::path>(),
-      std::declval<base_serialize<T, typename T::for_all_args>::manifest_t>());
+      std::declval<
+          typename base_serialize<T, typename T::for_all_args>::manifest_t&>());
 };
 
 /**
@@ -117,7 +124,7 @@ struct base_serialize {
 
       std::filesystem::path rank_path =
           serialization_path /
-          ("rank" + std::to_string(derived_this->comm().rank()));
+          (data_filename_prefix + std::to_string(derived_this->comm().rank()));
       std::ofstream ofs(rank_path);
       // cereal::PortableBinaryOutputArchive archive(ofs);
       output_archive_t archive(ofs);
@@ -174,6 +181,10 @@ struct base_serialize {
     manifest_t manifest_obj =
         read_manifest(serialization_path / "manifest.json");
 
+    if (check_types) {
+      check_serialized_types(manifest_obj);
+    }
+
     if constexpr (HasCustomDeserialize<derived_type>) {
       derived_this->custom_serialize(serialization_path, manifest_obj);
     } else {
@@ -181,26 +192,43 @@ struct base_serialize {
         derived_this->deserialize_prologue(serialization_path, manifest_obj);
       }
 
-      std::filesystem::path rank_path =
-          serialization_path /
-          ("rank" + std::to_string(derived_this->comm().rank()));
-      std::ifstream   ifs(rank_path, std::ios::binary);
-      input_archive_t archive(ifs);
+      std::vector<int> local_read_rank_ids =
+          assign_serialized_rank_files(serialization_path);
 
-      // This check for when the archive is empty only works with binary
-      // archives.
-      while (ifs.peek() != EOF) {
-        if constexpr (SingleItemTuple<for_all_args>) {
-          typename std::tuple_element<0, for_all_args>::type val;
-          archive(val);
+      for (const int rank_id : local_read_rank_ids) {
+        std::filesystem::path rank_path =
+            serialization_path /
+            (data_filename_prefix + std::to_string(rank_id));
+        std::ifstream   ifs(rank_path, std::ios::binary);
+        input_archive_t archive(ifs);
 
-          derived_this->local_insert(val);
-        } else if constexpr (DoubleItemTuple<for_all_args>) {
-          typename std::tuple_element<0, for_all_args>::type key;
-          typename std::tuple_element<1, for_all_args>::type val;
-          archive(key, val);
+        boost::json::value jv = manifest_obj["comm_size"];
+        bool               local_insert_flag =
+            ((rank_id == derived_this->comm().rank()) and
+             (jv.to_number<int64_t>() == derived_this->comm().size()));
+        // This check for when the archive is empty only works with binary
+        // archives.
+        while (ifs.peek() != EOF) {
+          if constexpr (SingleItemTuple<for_all_args>) {
+            typename std::tuple_element<0, for_all_args>::type val;
+            archive(val);
 
-          derived_this->local_insert(key, val);
+            if (local_insert_flag) {
+              derived_this->local_insert(val);
+            } else {
+              derived_this->async_insert(val);
+            }
+          } else if constexpr (DoubleItemTuple<for_all_args>) {
+            typename std::tuple_element<0, for_all_args>::type key;
+            typename std::tuple_element<1, for_all_args>::type val;
+            archive(key, val);
+
+            if (local_insert_flag) {
+              derived_this->local_insert(key, val);
+            } else {
+              derived_this->async_insert(key, val);
+            }
+          }
         }
       }
 
@@ -223,6 +251,18 @@ struct base_serialize {
     manifest_t manifest_obj{};
     manifest_obj["version"]   = manifest_version;
     manifest_obj["comm_size"] = derived_this->comm().size();
+    manifest_obj["container_type"] =
+        typeid(typename derived_type::container_type).name();
+
+    // TODO: Case for neither condition?
+    if constexpr (SingleItemTuple<for_all_args>) {
+      manifest_obj["value_type"] =
+          typeid(typename derived_type::value_type).name();
+    } else if constexpr (DoubleItemTuple<for_all_args>) {
+      manifest_obj["key_type"] = typeid(typename derived_type::key_type).name();
+      manifest_obj["mapped_type"] =
+          typeid(typename derived_type::mapped_type).name();
+    }
 
     return manifest_obj;
   }
@@ -275,16 +315,62 @@ struct base_serialize {
   }
 
   /**
+   * @brief Check that serialized types are the same as those in the container
+   * being deserialized into
+   *
+   * @param manifest_obj Manifest with information about types at serialization
+   * time
+   */
+  void check_serialized_types(const manifest_t& manifest_obj) {
+    if constexpr (SingleItemTuple<for_all_args>) {
+      YGM_ASSERT_RELEASE(typeid(typename derived_type::value_type).name() ==
+                         manifest_obj.at("value_type"));
+    } else if constexpr (DoubleItemTuple<for_all_args>) {
+      YGM_ASSERT_RELEASE(typeid(typename derived_type::key_type).name() ==
+                         manifest_obj.at("key_type"));
+      YGM_ASSERT_RELEASE(typeid(typename derived_type::mapped_type).name() ==
+                         manifest_obj.at("mapped_type"));
+    }
+  }
+
+  /**
    * @brief Assign serialized data files to ranks for reading
    *
-   * @tparam
    * @param serialization_path Path to directory of serialized data files
-   * @return A vector of rank IDs representing the data files for the local rank
-   * to open and deserialize
+   * @return local_read_rank_ids A vector of rank IDs representing the data
+   * files for the local rank to open and deserialize
    */
   std::vector<int> assign_serialized_rank_files(
       const std::filesystem::path& serialization_path) {
+    derived_type*    derived_this = static_cast<derived_type*>(this);
     std::vector<int> local_read_rank_ids;
+
+    ygm::comm& c = derived_this->comm();
+
+    auto p_local_read_rank_ids = c.make_ygm_ptr(local_read_rank_ids);
+
+    if (c.rank0()) {
+      for (const auto& dir_entry :
+           std::filesystem::directory_iterator(serialization_path)) {
+        auto filename = std::filesystem::path(dir_entry).filename();
+        auto pos      = filename.string().find(data_filename_prefix);
+        if (pos != std::string::npos) {
+          std::string filename_str = filename.string();
+          int         rank =
+              std::stoi(filename_str.substr(pos + data_filename_prefix.size()));
+
+          int dest = rank % c.size();
+          c.async(
+              dest,
+              [](int file_rank, auto p_local_read_rank_ids) {
+                p_local_read_rank_ids->push_back(file_rank);
+              },
+              rank, p_local_read_rank_ids);
+        }
+      }
+    }
+
+    c.barrier();
 
     return local_read_rank_ids;
   }
