@@ -21,8 +21,8 @@
 namespace ygm::container::detail {
 
 namespace serialize_constants {
-constexpr int         manifest_version = 1;
-constexpr std::string data_filename_prefix{"data_rank"};
+constexpr int              manifest_version = 1;
+constexpr std::string_view data_filename_prefix{"data_rank"};
 };  // namespace serialize_constants
 
 template <typename derived_type, typename for_all_args>
@@ -129,8 +129,8 @@ struct base_serialize {
 
       std::filesystem::path rank_path =
           serialization_path /
-          std::string(serialize_constants::data_filename_prefix +
-                      std::to_string(derived_this->comm().rank()));
+          (std::string(serialize_constants::data_filename_prefix) +
+           std::to_string(derived_this->comm().rank()));
       std::ofstream ofs(rank_path);
       // cereal::PortableBinaryOutputArchive archive(ofs);
       output_archive_t archive(ofs);
@@ -206,8 +206,9 @@ struct base_serialize {
 
       for (const int rank_id : local_read_rank_ids) {
         std::filesystem::path rank_path =
-            serialization_path / (serialize_constants::data_filename_prefix +
-                                  std::to_string(rank_id));
+            serialization_path /
+            (std::string(serialize_constants::data_filename_prefix) +
+             std::to_string(rank_id));
         std::ifstream   ifs(rank_path, std::ios::binary);
         input_archive_t archive(ifs);
 
