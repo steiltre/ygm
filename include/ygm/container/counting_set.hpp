@@ -19,31 +19,36 @@ namespace ygm::container {
 
 /**
  * @brief `ygm::container::map` that is specialized for counting occurrences of
- * items in a stream.
+ * items in a stream. Mapped type can be specified if size_t is not appropriate.
  *
  * @details Adds a local cache of objects to reduce sends of
- * frequently-occurring items
+ * frequently-occurring items.
  */
-template <typename Key>
+template <typename Key, typename CountValue = size_t>
+  requires std::integral<CountValue>
 class counting_set
-    : public detail::base_count<counting_set<Key>, std::tuple<Key, size_t>>,
-      public detail::base_contains<counting_set<Key>, std::tuple<Key, size_t>>,
-      public detail::base_misc<counting_set<Key>, std::tuple<Key, size_t>>,
-      public detail::base_iterators<counting_set<Key>>,
-      public detail::base_iteration_key_value<counting_set<Key>,
-                                              std::tuple<Key, size_t>>,
+    : public detail::base_count<counting_set<Key, CountValue>,
+                                std::tuple<Key, CountValue>>,
+      public detail::base_contains<counting_set<Key, CountValue>,
+                                   std::tuple<Key, CountValue>>,
+      public detail::base_misc<counting_set<Key, CountValue>,
+                               std::tuple<Key, CountValue>>,
+      public detail::base_iterators<counting_set<Key, CountValue>>,
+      public detail::base_iteration_key_value<counting_set<Key, CountValue>,
+                                              std::tuple<Key, CountValue>>,
       public detail::base_serialize<counting_set<Key>,
-                                    std::tuple<Key, size_t>> {
-  friend struct detail::base_misc<counting_set<Key>, std::tuple<Key, size_t>>;
+                                    std::tuple<Key, CountValue>> {
+  friend struct detail::base_misc<counting_set<Key, CountValue>,
+                                  std::tuple<Key, CountValue>>;
 
-  using internal_container_type = map<Key, size_t>;
+  using internal_container_type = map<Key, CountValue>;
 
  public:
-  using self_type      = counting_set<Key>;
-  using mapped_type    = size_t;
+  using self_type      = counting_set<Key, CountValue>;
+  using mapped_type    = CountValue;
   using key_type       = Key;
   using size_type      = size_t;
-  using for_all_args   = std::tuple<Key, size_t>;
+  using for_all_args   = std::tuple<Key, CountValue>;
   using container_type = ygm::container::counting_set_tag;
   using ptr_type       = typename ygm::ygm_ptr<self_type>;
   using iterator       = typename internal_container_type::iterator;
@@ -293,7 +298,7 @@ class counting_set
     clear_cache();
   }
 
-  using detail::base_misc<counting_set<Key>, for_all_args>::clear;
+  using detail::base_misc<counting_set<Key, CountValue>, for_all_args>::clear;
 
   /**
    * @brief Clear the global storage of the counting_set
@@ -351,26 +356,6 @@ class counting_set
   }
 
   // bool is_mine(const key_type &key) const { return m_map.is_mine(key); }
-
-  /**
-   * @brief Gather the k "largest" item-count pairs according to provided
-   * comparison function
-   *
-   * @tparam Compare Type of comparison operator
-   * @param k Number of item-count pairs to gather
-   * @param comp Comparison function for identifying elements to gather
-   * @return vector of largest item-count pairs
-   */
-  template <typename CompareFunction>
-  std::vector<std::pair<key_type, mapped_type>> topk(size_t          k,
-                                                     CompareFunction cfn) {
-    return m_map.topk(k, cfn);
-  }
-
-  // template <typename STLKeyContainer>
-  // std::map<key_type, mapped_type> all_gather(const STLKeyContainer &keys) {
-  //   return m_map.all_gather(keys);
-  // }
 
   /**
    * @brief Collective operation to look up item counts from each rank
@@ -466,7 +451,7 @@ class counting_set
     YGM_ASSERT_DEBUG(cached_count > 0);
     m_map.async_visit(
         key,
-        []([[maybe_unused]] const key_type &key, size_t &count,
+        []([[maybe_unused]] const key_type &key, CountValue &count,
            int32_t to_add) { count += to_add; },
         cached_count);
     m_count_cache[slot].first  = key_type();
