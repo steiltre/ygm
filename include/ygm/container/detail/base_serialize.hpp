@@ -21,8 +21,8 @@
 namespace ygm::container::detail {
 
 namespace serialize_constants {
-constexpr int manifest_version = 1;
-std::string   data_filename_prefix{"data_rank"};
+constexpr int         manifest_version = 1;
+constexpr std::string data_filename_prefix{"data_rank"};
 };  // namespace serialize_constants
 
 template <typename derived_type, typename for_all_args>

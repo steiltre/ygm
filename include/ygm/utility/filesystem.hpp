@@ -16,7 +16,7 @@ namespace ygm::utility::fs {
  *
  * @param p Path to file
  */
-void make_directories(const ::fs::path &p) {
+inline void make_directories(const ::fs::path &p) {
   std::vector<::fs::path> directory_stack;
   ::fs::path              curr_path = p.parent_path();
 
