@@ -20,8 +20,10 @@
 
 namespace ygm::container::detail {
 
-constexpr int         manifest_version = 1;
-constexpr std::string data_filename_prefix{"data_rank"};
+namespace serialize_constants {
+constexpr int manifest_version = 1;
+std::string   data_filename_prefix{"data_rank"};
+};  // namespace serialize_constants
 
 template <typename derived_type, typename for_all_args>
 struct base_serialize;
@@ -127,7 +129,8 @@ struct base_serialize {
 
       std::filesystem::path rank_path =
           serialization_path /
-          (data_filename_prefix + std::to_string(derived_this->comm().rank()));
+          std::string(serialize_constants::data_filename_prefix +
+                      std::to_string(derived_this->comm().rank()));
       std::ofstream ofs(rank_path);
       // cereal::PortableBinaryOutputArchive archive(ofs);
       output_archive_t archive(ofs);
@@ -203,8 +206,8 @@ struct base_serialize {
 
       for (const int rank_id : local_read_rank_ids) {
         std::filesystem::path rank_path =
-            serialization_path /
-            (data_filename_prefix + std::to_string(rank_id));
+            serialization_path / (serialize_constants::data_filename_prefix +
+                                  std::to_string(rank_id));
         std::ifstream   ifs(rank_path, std::ios::binary);
         input_archive_t archive(ifs);
 
@@ -273,7 +276,7 @@ struct base_serialize {
     derived_type* derived_this = static_cast<derived_type*>(this);
 
     manifest_t manifest_obj{};
-    manifest_obj["version"]   = manifest_version;
+    manifest_obj["version"]   = serialize_constants::manifest_version;
     manifest_obj["comm_size"] = derived_this->comm().size();
     manifest_obj["container_type"] =
         typeid(typename derived_type::container_type).name();
@@ -385,11 +388,12 @@ struct base_serialize {
       for (const auto& dir_entry :
            std::filesystem::directory_iterator(serialization_path)) {
         auto filename = std::filesystem::path(dir_entry).filename();
-        auto pos      = filename.string().find(data_filename_prefix);
+        auto pos =
+            filename.string().find(serialize_constants::data_filename_prefix);
         if (pos != std::string::npos) {
           std::string filename_str = filename.string();
-          int         rank =
-              std::stoi(filename_str.substr(pos + data_filename_prefix.size()));
+          int         rank         = std::stoi(filename_str.substr(
+              pos + serialize_constants::data_filename_prefix.size()));
 
           int dest = rank % c.size();
           c.async(
