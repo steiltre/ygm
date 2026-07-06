@@ -17,6 +17,7 @@
 #include <ygm/container/detail/base_iteration.hpp>
 #include <ygm/container/detail/base_iterators.hpp>
 #include <ygm/container/detail/base_misc.hpp>
+#include <ygm/container/detail/base_serialize.hpp>
 #include <ygm/container/detail/round_robin_partitioner.hpp>
 #include <ygm/random/random.hpp>
 
@@ -33,7 +34,8 @@ class bag : public detail::base_async_insert_value<bag<Item>, std::tuple<Item>>,
             public detail::base_count<bag<Item>, std::tuple<Item>>,
             public detail::base_misc<bag<Item>, std::tuple<Item>>,
             public detail::base_iterators<bag<Item>>,
-            public detail::base_iteration_value<bag<Item>, std::tuple<Item>> {
+            public detail::base_iteration_value<bag<Item>, std::tuple<Item>>,
+            public detail::base_serialize<bag<Item>, std::tuple<Item>> {
   friend struct detail::base_misc<bag<Item>, std::tuple<Item>>;
 
   using block_32k_option_t = boost::container::deque_options<
@@ -305,45 +307,6 @@ class bag : public detail::base_async_insert_value<bag<Item>, std::tuple<Item>>,
   }
 
   /**
-   * @brief Serialize a bag to a collection of files to be read back in later
-   *
-   * @param fname Filename prefix to create filename used by every rank from
-   */
-  void serialize(const std::string &fname) {
-    m_comm.barrier();
-    std::string   rank_fname = fname + std::to_string(m_comm.rank());
-    std::ofstream os(rank_fname, std::ios::binary);
-    cereal::JSONOutputArchive oarchive(os);
-    // oarchive(m_local_bag, m_round_robin, m_comm.size());
-    oarchive(m_local_bag, m_comm.size());
-  }
-
-  /**
-   * @brief Deserialize a bag from files
-   *
-   * @param fname Filename prefix to create filename used by every rank from
-   * @details Currently requires the number of ranks deserializing a bag to be
-   * the same as was used for serialization.
-   */
-  void deserialize(const std::string &fname) {
-    m_comm.barrier();
-
-    std::string   rank_fname = fname + std::to_string(m_comm.rank());
-    std::ifstream is(rank_fname, std::ios::binary);
-
-    cereal::JSONInputArchive iarchive(is);
-    int                      comm_size;
-    // iarchive(m_local_bag, m_round_robin, comm_size);
-    iarchive(m_local_bag, comm_size);
-
-    if (comm_size != m_comm.size()) {
-      m_comm.cerr0(
-          "Attempting to deserialize bag_impl using communicator of "
-          "different size than serialized with");
-    }
-  }
-
-  /**
    * @brief Repartition data to hold approximately equal numbers of items on
    * every rank
    */
@@ -401,7 +364,8 @@ class bag : public detail::base_async_insert_value<bag<Item>, std::tuple<Item>>,
   }
 
   /**
-   * @brief Shuffle elements held locally with a default random number generator
+   * @brief Shuffle elements held locally with a default random number
+   * generator
    */
   void local_shuffle() {
     ygm::random::default_random_engine<> r(m_comm, std::random_device()());

@@ -19,6 +19,7 @@
 #include <ygm/container/detail/base_iteration.hpp>
 #include <ygm/container/detail/base_iterators.hpp>
 #include <ygm/container/detail/base_misc.hpp>
+#include <ygm/container/detail/base_serialize.hpp>
 #include <ygm/container/detail/hash_partitioner.hpp>
 
 namespace ygm::container {
@@ -44,7 +45,8 @@ class map
       public detail::base_async_visit<map<Key, Value>, std::tuple<Key, Value>>,
       public detail::base_iterators<map<Key, Value>>,
       public detail::base_iteration_key_value<map<Key, Value>,
-                                              std::tuple<Key, Value>> {
+                                              std::tuple<Key, Value>>,
+      public detail::base_serialize<map<Key, Value>, std::tuple<Key, Value>> {
   friend struct detail::base_misc<map<Key, Value>, std::tuple<Key, Value>>;
 
   using local_container_type =
@@ -589,9 +591,6 @@ class map
   bool local_contains(const key_type& key) const {
     return m_local_map.contains(key);
   }
-
-  // void serialize(const std::string& fname) { m_impl.serialize(fname); }
-  // void deserialize(const std::string& fname) { m_impl.deserialize(fname); }
 
   // template <typename STLKeyContainer>
   // std::map<key_type, mapped_type> all_gather(const STLKeyContainer& keys) {

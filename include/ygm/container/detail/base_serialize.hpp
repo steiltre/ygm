@@ -12,6 +12,7 @@
 // #include <cereal/archives/portable_binary.hpp>
 // #include <cereal/archives/json.hpp>
 
+#include <ygm/container/detail/base_async_insert.hpp>
 #include <ygm/container/detail/base_concepts.hpp>
 #include <ygm/detail/collective.hpp>
 #include <ygm/utility/boost_json.hpp>
@@ -110,6 +111,8 @@ struct base_serialize {
   void serialize(std::filesystem::path serialization_path) {
     derived_type* derived_this = static_cast<derived_type*>(this);
 
+    derived_this->comm().barrier();
+
     serialization_path /= "";  // Append directory separator if not present
     ygm::utility::fs::make_directories(serialization_path);
 
@@ -137,6 +140,9 @@ struct base_serialize {
         for (const auto& [key, value] : *derived_this) {
           archive(key, value);
         }
+      } else {
+        derived_this->comm().cerr()
+            << "Unable loop over container to serialize" << std::endl;
       }
 
       derived_this->comm().cf_barrier();
@@ -213,8 +219,19 @@ struct base_serialize {
             typename std::tuple_element<0, for_all_args>::type val;
             archive(val);
 
-            if (local_insert_flag) {
-              derived_this->local_insert(val);
+            // Only use local_insert if local_insert if serialization and
+            // deserialization communicator configurations match and the
+            // container derives from base_async_insert (implying the existence
+            // of local_insert);
+            if constexpr (std::is_base_of_v<
+                              ygm::container::detail::base_async_insert_value<
+                                  derived_type, for_all_args>,
+                              derived_type>) {
+              if (local_insert_flag) {
+                derived_this->local_insert(val);
+              } else {
+                derived_this->async_insert(val);
+              }
             } else {
               derived_this->async_insert(val);
             }
@@ -223,8 +240,15 @@ struct base_serialize {
             typename std::tuple_element<1, for_all_args>::type val;
             archive(key, val);
 
-            if (local_insert_flag) {
-              derived_this->local_insert(key, val);
+            if constexpr (std::is_base_of_v<ygm::container::detail::
+                                                base_async_insert_key_value<
+                                                    derived_type, for_all_args>,
+                                            derived_type>) {
+              if (local_insert_flag) {
+                derived_this->local_insert(key, val);
+              } else {
+                derived_this->async_insert(key, val);
+              }
             } else {
               derived_this->async_insert(key, val);
             }
@@ -262,6 +286,10 @@ struct base_serialize {
       manifest_obj["key_type"] = typeid(typename derived_type::key_type).name();
       manifest_obj["mapped_type"] =
           typeid(typename derived_type::mapped_type).name();
+    }
+
+    if constexpr (HasSize<derived_type>) {
+      manifest_obj["size"] = derived_this->size();
     }
 
     return manifest_obj;
@@ -331,6 +359,10 @@ struct base_serialize {
       YGM_ASSERT_RELEASE(typeid(typename derived_type::mapped_type).name() ==
                          manifest_obj.at("mapped_type"));
     }
+
+    // Check tag of container used during serialization
+    YGM_ASSERT_RELEASE(typeid(typename derived_type::container_type).name() ==
+                       manifest_obj.at("container_type"));
   }
 
   /**

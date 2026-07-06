@@ -784,11 +784,12 @@ int main(int argc, char **argv) {
     }
   }
 
-  //
-  // Test serialization
   {
     std::string   serialization_path = "/tmp/serialized_array";
     constexpr int size               = 1073;
+
+    //
+    // Test serialization
     {
       ygm::container::array<std::pair<int, double>> arr(world, size);
 

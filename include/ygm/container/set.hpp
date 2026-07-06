@@ -17,6 +17,7 @@
 #include <ygm/container/detail/base_iteration.hpp>
 #include <ygm/container/detail/base_iterators.hpp>
 #include <ygm/container/detail/base_misc.hpp>
+#include <ygm/container/detail/base_serialize.hpp>
 #include <ygm/container/detail/hash_partitioner.hpp>
 
 namespace ygm::container {
@@ -32,7 +33,8 @@ class set
       public detail::base_count<set<Value>, std::tuple<Value>>,
       public detail::base_misc<set<Value>, std::tuple<Value>>,
       public detail::base_iterators<set<Value>>,
-      public detail::base_iteration_value<set<Value>, std::tuple<Value>> {
+      public detail::base_iteration_value<set<Value>, std::tuple<Value>>,
+      public detail::base_serialize<set<Value>, std::tuple<Value>> {
   friend struct detail::base_misc<set<Value>, std::tuple<Value>>;
 
   using local_container_type =
@@ -312,22 +314,6 @@ class set
     sp_to_return = nullptr;
     return to_return;
   }
-
-  /**
-   * @brief Serialize a set to a collection of files to be read back in later
-   *
-   * @param fname Filename prefix to create filename used by every rank from
-   */
-  void serialize([[maybe_unused]] const std::string &fname) {}
-
-  /**
-   * @brief Deserialize a set from files
-   *
-   * @param fname Filename prefix to create filename used by every rank from
-   * @details Currently requires the number of ranks deserializing a bag to be
-   * the same as was used for serialization.
-   */
-  void deserialize([[maybe_unused]] const std::string &fname) {}
 
   /**
    * @brief Swap elements held locally between sets

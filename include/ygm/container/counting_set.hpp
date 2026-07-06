@@ -11,6 +11,7 @@
 #include <ygm/container/detail/base_count.hpp>
 #include <ygm/container/detail/base_iteration.hpp>
 #include <ygm/container/detail/base_misc.hpp>
+#include <ygm/container/detail/base_serialize.hpp>
 #include <ygm/container/map.hpp>
 #include <ygm/detail/ygm_ptr.hpp>
 
@@ -30,7 +31,9 @@ class counting_set
       public detail::base_misc<counting_set<Key>, std::tuple<Key, size_t>>,
       public detail::base_iterators<counting_set<Key>>,
       public detail::base_iteration_key_value<counting_set<Key>,
-                                              std::tuple<Key, size_t>> {
+                                              std::tuple<Key, size_t>>,
+      public detail::base_serialize<counting_set<Key>,
+                                    std::tuple<Key, size_t>> {
   friend struct detail::base_misc<counting_set<Key>, std::tuple<Key, size_t>>;
 
   using internal_container_type = map<Key, size_t>;
@@ -249,6 +252,17 @@ class counting_set
   void async_insert(const key_type &key) { cache_insert(key); }
 
   /**
+   * @brief Asynchronously insert an item for counting
+   *
+   * @param key Item to count
+   * @details Inserts item into local cache before sending count to remote
+   * location
+   */
+  void async_insert(const key_type &key, const mapped_type count) {
+    cache_insert(key, count);
+  }
+
+  /**
    * @brief Execute a functor on every locally-held item and count
    *
    * @tparam Function functor type
@@ -377,20 +391,6 @@ class counting_set
    */
   typename ygm::ygm_ptr<self_type> get_ygm_ptr() const { return pthis; }
 
-  /**
-   * @brief Serialize counting set contents to collection of files
-   *
-   * @param fname Filename prefix to create names for files used by each rank
-   */
-  void serialize(const std::string &fname) { m_map.serialize(fname); }
-
-  /**
-   * @brief Deserialize counting set contents from collection of files
-   *
-   * @param fname Filename prefix to create names for files used by each rank
-   */
-  void deserialize(const std::string &fname) { m_map.deserialize(fname); }
-
  private:
   /**
    * @brief Remove key from local cache and distributed map
@@ -414,8 +414,20 @@ class counting_set
    * @brief Insert key into local cache. If key already exists, increment count
    * in local cache. If other key exists in desired cache slot, flush cached
    * value by sending to count to distributed `ygm::container::map`.
+   *
+   * @param key Key to increment count of
    */
-  void cache_insert(const key_type &key) {
+  void cache_insert(const key_type &key) { cache_insert(key, 1); }
+
+  /**
+   * @brief Insert key into local cache. If key already exists, increment count
+   * in local cache. If other key exists in desired cache slot, flush cached
+   * value by sending to count to distributed `ygm::container::map`.
+   *
+   * @param key Key to increase count of
+   * @param count Number to add to current cached count for key
+   */
+  void cache_insert(const key_type &key, const mapped_type count) {
     if (m_cache_empty) {
       m_cache_empty = false;
       m_map.comm().register_pre_barrier_callback(
@@ -424,20 +436,20 @@ class counting_set
     size_t slot = detail::hash<key_type>{}(key) % count_cache_size;
     if (m_count_cache[slot].second == -1) {
       m_count_cache[slot].first  = key;
-      m_count_cache[slot].second = 1;
+      m_count_cache[slot].second = count;
     } else {
       // flush slot, fill with key
       YGM_ASSERT_DEBUG(m_count_cache[slot].second > 0);
       if (m_count_cache[slot].first == key) {
-        m_count_cache[slot].second++;
+        m_count_cache[slot].second += count;
       } else {
         count_cache_flush(slot);
         YGM_ASSERT_DEBUG(m_count_cache[slot].second == -1);
         m_count_cache[slot].first  = key;
-        m_count_cache[slot].second = 1;
+        m_count_cache[slot].second = count;
       }
     }
-    if (m_count_cache[slot].second == std::numeric_limits<int32_t>::max()) {
+    if (m_count_cache[slot].second >= std::numeric_limits<int32_t>::max()) {
       count_cache_flush(slot);
     }
   }

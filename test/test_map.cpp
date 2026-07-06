@@ -699,5 +699,41 @@ int main(int argc, char **argv) {
     YGM_ASSERT_RELEASE(smap2.size() == 4);
   }
 
+  {
+    std::string   serialization_path = "/tmp/serialized_map";
+    constexpr int size               = 879;
+
+    //
+    // Test serialization
+    {
+      ygm::container::map<std::string, std::pair<int, double>> smap(world);
+
+      if (world.rank0()) {
+        for (int i = 0; i < size; ++i) {
+          smap.async_insert(std::to_string(i), std::make_pair(2 * i, 3.14));
+        }
+      }
+
+      world.barrier();
+
+      smap.serialize(serialization_path);
+    }
+
+    //
+    // Test deserialization
+    {
+      ygm::container::map<std::string, std::pair<int, double>> smap(world);
+
+      smap.deserialize(serialization_path);
+
+      YGM_ASSERT_RELEASE(smap.size() == size);
+
+      for (const auto &[key, val_pair] : smap) {
+        YGM_ASSERT_RELEASE(val_pair.first == 2 * std::stoi(key));
+        YGM_ASSERT_RELEASE(val_pair.second == 3.14);
+      }
+    }
+  }
+
   return 0;
 }
