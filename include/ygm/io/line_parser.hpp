@@ -59,7 +59,7 @@ class line_parser : public ygm::container::detail::base_iteration_value<
     using pointer           = const std::string*;
     using reference         = const std::string&;
 
-    iterator() = default;  // sentinel / end iterator
+    iterator() = default;  // sentinel/end iterator
 
     reference operator*() const { return m_impl->current_line; }
     pointer   operator->() const { return &m_impl->current_line; }
@@ -380,9 +380,9 @@ class line_parser : public ygm::container::detail::base_iteration_value<
         for (int rank = 0; rank < m_comm.size(); ++rank) {
           size_t remaining_budget = bytes_per_rank;
           while (remaining_budget > 0 && !remaining_files.empty()) {
-            size_t  file_remaining = std::get<2>(remaining_files.back()) -
-                                     std::get<1>(remaining_files.back());
-            size_t& cur_position   = std::get<1>(remaining_files.back());
+            size_t file_remaining = std::get<2>(remaining_files.back()) -
+                                    std::get<1>(remaining_files.back());
+            size_t& cur_position = std::get<1>(remaining_files.back());
             if (file_remaining > remaining_budget) {
               m_comm.async(
                   rank,
@@ -441,9 +441,9 @@ class line_parser : public ygm::container::detail::base_iteration_value<
         for (int rank : m_comm.layout().local_ranks()) {
           size_t remaining_budget = bytes_per_rank;
           while (remaining_budget > 0 && !remaining_files.empty()) {
-            size_t  file_remaining = std::get<2>(remaining_files.back()) -
-                                     std::get<1>(remaining_files.back());
-            size_t& cur_position   = std::get<1>(remaining_files.back());
+            size_t file_remaining = std::get<2>(remaining_files.back()) -
+                                    std::get<1>(remaining_files.back());
+            size_t& cur_position = std::get<1>(remaining_files.back());
             if (file_remaining > remaining_budget) {
               m_comm.async(
                   rank,
