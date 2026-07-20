@@ -21,7 +21,8 @@ namespace ygm::io {
 class csv_parser : public ygm::container::detail::base_iteration_value<
                        csv_parser, std::tuple<std::vector<detail::csv_field>>> {
  public:
-  using for_all_args = std::tuple<std::vector<detail::csv_field>>;
+  using for_all_args    = std::tuple<std::vector<detail::csv_field>>;
+  using header_map_type = ygm::io::detail::csv_line::header_map_type;
 
   template <typename... Args>
   csv_parser(Args&&... args)
@@ -37,8 +38,8 @@ class csv_parser : public ygm::container::detail::base_iteration_value<
 
     iterator() = default;  // sentinel/end iterator
 
-    reference operator*() const { return m_impl->current_line; }
-    pointer   operator->() const { return &m_impl->current_line; }
+    reference operator*() const { return m_impl->m_current_line; }
+    pointer   operator->() const { return &m_impl->m_current_line; }
 
     iterator& operator++() {
       m_impl->advance();
@@ -52,23 +53,30 @@ class csv_parser : public ygm::container::detail::base_iteration_value<
     }
 
     friend bool operator==(const iterator& a, const iterator& b) {
-      return a.m_impl.m_lp_iter == b.m_impl.m_lp_iter;
+      return a.m_impl->m_lp_iter == b.m_impl->m_lp_iter;
+    }
+
+    friend bool operator!=(const iterator& a, const iterator& b) {
+      return !(a == b);
     }
 
    private:
-    struct impl {
-      ygm::io::line_parser::iterator              m_lp_iter;
-      ygm::io::detail::csv_line                   m_current_line;
-      ygm::io::detail::csv_line::header_map_type& m_header_map;
+    friend class csv_parser;
 
-      impl(const ygm::io::detail::csv_line::header_map_type& header_map)
-          : m_header_map(header_map){};
+    struct impl {
+      ygm::io::line_parser::iterator m_lp_iter;
+      ygm::io::detail::csv_line      m_current_line;
+      const header_map_type&         m_header_map;
+
+      impl(const header_map_type& header_map)
+          : m_current_line(header_map), m_header_map(header_map) {};
 
       // Advances to the next line from the underlying line_parser and parses it
       // as a CSV line
       void advance() {
         ++m_lp_iter;
-        m_current_line = parser_csv_line(*m_lp_iter, m_header_map);
+        m_current_line =
+            ygm::io::detail::parse_csv_line(*m_lp_iter, m_header_map);
       }
     };
 
@@ -87,6 +95,10 @@ class csv_parser : public ygm::container::detail::base_iteration_value<
    */
   template <typename Function>
   void for_all(Function fn) {
+    for (const auto& line : *this) {
+      fn(line);
+    }
+    /*
     using namespace ygm::io::detail;
 
     auto handle_line_lambda = [fn, this](const std::string& line) {
@@ -99,6 +111,7 @@ class csv_parser : public ygm::container::detail::base_iteration_value<
     };
 
     m_lp.for_all(handle_line_lambda);
+    */
   }
 
   /**
@@ -129,7 +142,7 @@ class csv_parser : public ygm::container::detail::base_iteration_value<
    * @brief Returns an iterator to the first line of CSV assigned to this rank
    */
   iterator begin() {
-    auto impl       = std::make_shared<iterator::impl>();
+    auto impl       = std::make_shared<iterator::impl>(m_header_map);
     impl->m_lp_iter = m_lp.begin();
     impl->advance();
     return iterator(impl);

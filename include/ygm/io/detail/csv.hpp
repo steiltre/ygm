@@ -79,9 +79,9 @@ class csv_line {
   using const_iterator         = vector_type::const_iterator;
   using reverse_iterator       = vector_type::reverse_iterator;
   using const_reverse_iterator = vector_type::const_reverse_iterator;
-  using header_map_type        = std::map<std::string, int>
+  using header_map_type        = std::map<std::string, int>;
 
-  csv_line(const header_map_type &header_map) : m_header_map_ref(header_map) {};
+  csv_line(const header_map_type &header_map) : p_header_map(&header_map) {};
 
   void push_back(const csv_field &f) { m_csv_fields.push_back(f); }
 
@@ -92,7 +92,7 @@ class csv_line {
   const_reference operator[](size_type n) const { return m_csv_fields[n]; }
 
   const_reference operator[](const std::string &key) const {
-    return m_csv_fields[m_header_map_ref.at(key)];
+    return m_csv_fields[p_header_map->at(key)];
   }
 
   iterator               begin() { return m_csv_fields.begin(); }
@@ -110,7 +110,7 @@ class csv_line {
 
  private:
   std::vector<csv_field> m_csv_fields;
-  const header_map_type &m_header_map_ref;
+  const header_map_type *p_header_map;
 };
 
 inline std::ostream &operator<<(std::ostream &os, const csv_field &f) {
