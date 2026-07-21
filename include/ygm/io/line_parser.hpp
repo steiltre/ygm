@@ -88,6 +88,8 @@ class line_parser : public ygm::container::detail::base_iteration_value<
       return !(a == b);
     }
 
+    bool valid() { return m_impl->valid; }
+
    private:
     friend class line_parser;
 
@@ -171,51 +173,6 @@ class line_parser : public ygm::container::detail::base_iteration_value<
     for (const auto& line : *this) {
       fn(line);
     }
-    /*
-    std::vector<std::tuple<fs::path, size_t, size_t>> my_file_paths =
-        partition_files();
-
-    //
-    // Each rank process locally assigned files.
-    for (const auto& fname : my_file_paths) {
-      // m_comm.cout("Opening: ", std::get<0>(fname), " ", std::get<1>(fname),
-      //             " ", std::get<2>(fname));
-      std::ifstream ifs(std::get<0>(fname));
-      // Note: Current process is responsible for reading up to *AND
-      // INCLUDING* bytes_end
-      size_t bytes_begin = std::get<1>(fname);
-      size_t bytes_end   = std::get<2>(fname);
-      YGM_ASSERT_RELEASE(ifs.good());
-      ifs.imbue(std::locale::classic());
-      std::string line;
-      bool        first_line = false;
-      // Throw away line containing bytes_begin as it was read by the previous
-      // process (unless it corresponds to the beginning of a file)
-      if (bytes_begin > 0) {
-        ifs.seekg(bytes_begin);
-        std::getline(ifs, line);
-      } else {
-        first_line = true;
-      }
-      // Keep reading until line containing bytes_end is read
-      while (ifs.tellg() <= std::streamoff(bytes_end) &&
-             std::getline(ifs, line)) {
-        // Check if last character is '\r'. This will happen if a file was
-        // edited on Windows and can cause issues for parsing
-        if (not line.empty() && (line.back() == 0x0D)) {
-          line.resize(line.size() - 1);
-        }
-        // Skip first line if necessary
-        if (not first_line || not m_skip_first_line) {
-          fn(line);
-        } else {
-        }
-        // if(ifs.tellg() > bytes_end) break;
-        first_line = false;
-      }
-    }
-    my_file_paths.clear();
-    */
   }
 
   std::string read_first_line() {

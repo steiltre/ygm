@@ -53,6 +53,11 @@ class csv_parser : public ygm::container::detail::base_iteration_value<
     }
 
     friend bool operator==(const iterator& a, const iterator& b) {
+      bool a_end = !a.m_impl || !a.m_impl->m_lp_iter.valid();
+      bool b_end = !b.m_impl || !b.m_impl->m_lp_iter.valid();
+      if (a_end || b_end) {
+        return a_end == b_end;
+      }
       return a.m_impl->m_lp_iter == b.m_impl->m_lp_iter;
     }
 
@@ -98,20 +103,6 @@ class csv_parser : public ygm::container::detail::base_iteration_value<
     for (const auto& line : *this) {
       fn(line);
     }
-    /*
-    using namespace ygm::io::detail;
-
-    auto handle_line_lambda = [fn, this](const std::string& line) {
-      auto vfields = parse_csv_line(line, m_header_map);
-      // auto stypes    = convert_type_string(vfields);
-      // todo, detect if types are inconsistent between records
-      if (vfields.size() > 0) {
-        fn(vfields);
-      }
-    };
-
-    m_lp.for_all(handle_line_lambda);
-    */
   }
 
   /**
@@ -144,7 +135,8 @@ class csv_parser : public ygm::container::detail::base_iteration_value<
   iterator begin() {
     auto impl       = std::make_shared<iterator::impl>(m_header_map);
     impl->m_lp_iter = m_lp.begin();
-    impl->advance();
+    impl->m_current_line =
+        ygm::io::detail::parse_csv_line(*(impl->m_lp_iter), m_header_map);
     return iterator(impl);
   }
 
@@ -158,5 +150,5 @@ class csv_parser : public ygm::container::detail::base_iteration_value<
 
   header_map_type m_header_map;
   bool            m_has_headers;
-};  // namespace ygm::io
+};
 }  // namespace ygm::io
