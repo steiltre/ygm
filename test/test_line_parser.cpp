@@ -13,7 +13,7 @@
 namespace fs = std::filesystem;
 
 void test_line_parser_files(ygm::comm&, const std::vector<std::string>&);
-void test_line_parser_directory(ygm::comm& , const std::string& , size_t );
+void test_line_parser_directory(ygm::comm&, const std::string&, size_t);
 
 int main(int argc, char** argv) {
   ygm::comm world(&argc, &argv);
@@ -22,14 +22,14 @@ int main(int argc, char** argv) {
     test_line_parser_files(world, {"data/short.txt"});
     test_line_parser_files(world, {"data/loremipsum/loremipsum_0.txt"});
     test_line_parser_files(world, {"data/loremipsum/loremipsum_0.txt",
-                             "data/loremipsum/loremipsum_1.txt"});
+                                   "data/loremipsum/loremipsum_1.txt"});
     test_line_parser_files(world, {"data/loremipsum/loremipsum_0.txt",
-                             "data/loremipsum/loremipsum_1.txt",
-                             "data/loremipsum/loremipsum_2.txt"});
+                                   "data/loremipsum/loremipsum_1.txt",
+                                   "data/loremipsum/loremipsum_2.txt"});
     test_line_parser_files(world, {"data/loremipsum/loremipsum_0.txt",
-                             "data/loremipsum/loremipsum_1.txt",
-                             "data/loremipsum/loremipsum_2.txt",
-                             "data/loremipsum/loremipsum_3.txt"});
+                                   "data/loremipsum/loremipsum_1.txt",
+                                   "data/loremipsum/loremipsum_2.txt",
+                                   "data/loremipsum/loremipsum_3.txt"});
     test_line_parser_files(
         world,
         {"data/loremipsum/loremipsum_0.txt", "data/loremipsum/loremipsum_1.txt",
@@ -49,14 +49,20 @@ int main(int argc, char** argv) {
   return 0;
 }
 
-void test_line_parser_files(ygm::comm& comm, const std::vector<std::string>& files) {
+void test_line_parser_files(ygm::comm&                      comm,
+                            const std::vector<std::string>& files) {
   //
   // Read in each line into a distributed set
-  ygm::container::counting_set<std::string> line_set_to_test(comm);
+  ygm::container::counting_set<std::string> line_set_to_test_for_all(comm);
+  ygm::container::counting_set<std::string> line_set_to_test_iterators(comm);
   ygm::io::line_parser                      bfr(comm, files);
-  bfr.for_all([&line_set_to_test](const std::string& line) {
-    line_set_to_test.async_insert(line);
+  bfr.for_all([&line_set_to_test_for_all](const std::string& line) {
+    line_set_to_test_for_all.async_insert(line);
   });
+
+  for (const auto& line : bfr) {
+    line_set_to_test_iterators.async_insert(line);
+  }
 
   //
   // Read each line sequentially
@@ -73,20 +79,28 @@ void test_line_parser_files(ygm::comm& comm, const std::vector<std::string>& fil
   }
 
   YGM_ASSERT_RELEASE(line_set.size() == line_set_sequential.size());
-  //comm.cout0(line_set.size(), " =? ", line_set_to_test.size());
-  YGM_ASSERT_RELEASE(line_set.size() == line_set_to_test.size());
-  // YGM_ASSERT_RELEASE(line_set == line_set_to_test);
+  // comm.cout0(line_set.size(), " =? ", line_set_to_test.size());
+  YGM_ASSERT_RELEASE(line_set.size() == line_set_to_test_for_all.size());
+  // YGM_ASSERT_RELEASE(line_set == line_set_to_test_for_all);
+  YGM_ASSERT_RELEASE(line_set.size() == line_set_to_test_iterators.size());
+  // YGM_ASSERT_RELEASE(line_set == line_set_to_test_iterators);
 }
 
-
-void test_line_parser_directory(ygm::comm& comm, const std::string& dir, size_t unique_line_count) {
+void test_line_parser_directory(ygm::comm& comm, const std::string& dir,
+                                size_t unique_line_count) {
   //
   // Read in each line into a distributed set
-  ygm::container::counting_set<std::string> line_set_to_test(comm);
+  ygm::container::counting_set<std::string> line_set_to_test_for_all(comm);
+  ygm::container::counting_set<std::string> line_set_to_test_iterators(comm);
   ygm::io::line_parser                      bfr(comm, {dir});
-  bfr.for_all([&line_set_to_test](const std::string& line) {
-    line_set_to_test.async_insert(line);
+  bfr.for_all([&line_set_to_test_for_all](const std::string& line) {
+    line_set_to_test_for_all.async_insert(line);
   });
 
-  YGM_ASSERT_RELEASE(unique_line_count == line_set_to_test.size());  
+  for (const auto& line : bfr) {
+    line_set_to_test_iterators.async_insert(line);
+  }
+
+  YGM_ASSERT_RELEASE(unique_line_count == line_set_to_test_for_all.size());
+  YGM_ASSERT_RELEASE(unique_line_count == line_set_to_test_iterators.size());
 }

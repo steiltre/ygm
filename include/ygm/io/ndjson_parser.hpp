@@ -138,6 +138,8 @@ class ndjson_parser : public ygm::container::detail::base_iteration_value<
    */
   template <typename Function>
   void for_all(Function fn) {
+    m_num_invalid_records = 0;  // Reset to avoid over-reporting invalid lines
+                                // when reading multiple times
     const auto end_iter = end();
     for (auto iter = begin(); iter != end_iter; ++iter) {
       if (iter.m_impl->m_valid_line) {
@@ -167,6 +169,9 @@ class ndjson_parser : public ygm::container::detail::base_iteration_value<
    * @brief Returns an iterator to the first line of CSV assigned to this rank
    */
   iterator begin() {
+    m_num_invalid_records = 0;  // Reset to avoid over-reporting invalid lines
+                                // when reading multiple times
+
     auto impl       = std::make_shared<iterator::impl>();
     impl->m_lp_iter = m_lp.begin();
 
