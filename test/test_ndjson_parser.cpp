@@ -31,7 +31,7 @@ int main(int argc, char** argv) {
     // Test iterators
     {
       size_t local_count{0};
-      for (const auto& json : jsonp) {
+      for ([[maybe_unused]] const auto& json : jsonp) {
         ++local_count;
       }
 
@@ -60,7 +60,7 @@ int main(int argc, char** argv) {
     // Test iterators
     {
       size_t local_count{0};
-      for (const auto& json : jsonp) {
+      for ([[maybe_unused]] const auto& json : jsonp) {
         ++local_count;
       }
 
