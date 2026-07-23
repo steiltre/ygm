@@ -107,19 +107,27 @@ class ndjson_parser : public ygm::container::detail::base_iteration_value<
       ygm::io::line_parser::iterator m_lp_iter;
       boost::json::object            m_current_line;
       bool                           m_valid_line;
+      ndjson_parser                 *p_parser{nullptr};
 
       impl() : m_current_line() {};
 
       // Advances to the next line from the underlying line_parser and parses it
-      // as a CSV line
+      // as a JSON line
       void advance() {
-        ++m_lp_iter;
-        try {
-          m_current_line = boost::json::parse(*m_lp_iter).as_object();
-          m_valid_line   = true;
-        } catch (...) {
-          m_valid_line = false;
-        }
+        do {
+          ++m_lp_iter;
+          try {
+            m_current_line = boost::json::parse(*m_lp_iter).as_object();
+            m_valid_line   = true;
+          } catch (...) {
+            m_valid_line = false;
+            // Count invalid line if line parser says line is valid but JSON
+            // parsing fails
+            if (m_lp_iter.valid()) {
+              p_parser->m_num_invalid_records++;
+            }
+          }
+        } while (not m_valid_line and m_lp_iter.valid());
       }
     };
 
@@ -174,12 +182,14 @@ class ndjson_parser : public ygm::container::detail::base_iteration_value<
 
     auto impl       = std::make_shared<iterator::impl>();
     impl->m_lp_iter = m_lp.begin();
+    impl->p_parser  = this;
 
     try {
       impl->m_current_line = boost::json::parse(*(impl->m_lp_iter)).as_object();
       impl->m_valid_line   = true;
     } catch (...) {
       impl->m_valid_line = false;
+      ++m_num_invalid_records;
     }
     return iterator(impl);
   }
