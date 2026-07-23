@@ -189,7 +189,9 @@ class ndjson_parser : public ygm::container::detail::base_iteration_value<
       impl->m_valid_line   = true;
     } catch (...) {
       impl->m_valid_line = false;
-      ++m_num_invalid_records;
+      if (impl->m_lp_iter.valid()) {
+        ++m_num_invalid_records;
+      }
     }
     return iterator(impl);
   }
