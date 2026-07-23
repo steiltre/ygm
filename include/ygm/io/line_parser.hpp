@@ -209,7 +209,10 @@ class line_parser : public ygm::container::detail::base_iteration_value<
   /**
    * @brief Returns the past-the-end sentinel iterator.
    */
-  iterator end() { return iterator(); }
+  iterator end() {
+    comm().barrier();
+    return iterator();
+  }
 
  private:
   /**

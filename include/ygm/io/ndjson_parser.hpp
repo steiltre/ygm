@@ -146,15 +146,8 @@ class ndjson_parser : public ygm::container::detail::base_iteration_value<
    */
   template <typename Function>
   void for_all(Function fn) {
-    m_num_invalid_records = 0;  // Reset to avoid over-reporting invalid lines
-                                // when reading multiple times
-    const auto end_iter = end();
-    for (auto iter = begin(); iter != end_iter; ++iter) {
-      if (iter.m_impl->m_valid_line) {
-        fn(iter.m_impl->m_current_line);
-      } else {
-        ++m_num_invalid_records;
-      }
+    for (const auto &jsonline : *this) {
+      fn(jsonline);
     }
   }
 
@@ -199,7 +192,10 @@ class ndjson_parser : public ygm::container::detail::base_iteration_value<
   /**
    * @brief Returns a past-the-end sentinel iterator
    */
-  iterator end() { return iterator(); }
+  iterator end() {
+    comm().barrier();
+    return iterator();
+  }
 
   /*
    * @brief Get a count of the number of invalid JSON lines encountered during

@@ -143,7 +143,10 @@ class csv_parser : public ygm::container::detail::base_iteration_value<
   /**
    * @brief Returns a past-the-end sentinel iterator
    */
-  iterator end() { return iterator(); }
+  iterator end() {
+    comm().barrier();
+    return iterator();
+  }
 
  private:
   line_parser m_lp;
