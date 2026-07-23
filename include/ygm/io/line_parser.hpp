@@ -311,6 +311,8 @@ class line_parser : public ygm::container::detail::base_iteration_value<
   }
 
   void partition_files() {
+    m_local_files.clear();
+
     ygm::ygm_ptr<std::vector<std::tuple<fs::path, size_t, size_t>>>
         p_my_file_paths = m_comm.make_ygm_ptr(m_local_files);
 

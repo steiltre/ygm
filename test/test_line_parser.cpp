@@ -55,12 +55,17 @@ void test_line_parser_files(ygm::comm&                      comm,
   // Read in each line into a distributed set
   ygm::container::counting_set<std::string> line_set_to_test_for_all(comm);
   ygm::container::counting_set<std::string> line_set_to_test_iterators(comm);
+  size_t                                    line_count_for_all{0};
+  size_t                                    line_count_iterators{0};
   ygm::io::line_parser                      bfr(comm, files);
-  bfr.for_all([&line_set_to_test_for_all](const std::string& line) {
+  bfr.for_all([&line_set_to_test_for_all,
+               &line_count_for_all](const std::string& line) {
+    ++line_count_for_all;
     line_set_to_test_for_all.async_insert(line);
   });
 
   for (const auto& line : bfr) {
+    ++line_count_iterators;
     line_set_to_test_iterators.async_insert(line);
   }
 
@@ -84,6 +89,8 @@ void test_line_parser_files(ygm::comm&                      comm,
   // YGM_ASSERT_RELEASE(line_set == line_set_to_test_for_all);
   YGM_ASSERT_RELEASE(line_set.size() == line_set_to_test_iterators.size());
   // YGM_ASSERT_RELEASE(line_set == line_set_to_test_iterators);
+  YGM_ASSERT_RELEASE(ygm::sum(line_count_for_all, comm) ==
+                     ygm::sum(line_count_iterators, comm));
 }
 
 void test_line_parser_directory(ygm::comm& comm, const std::string& dir,
@@ -92,15 +99,21 @@ void test_line_parser_directory(ygm::comm& comm, const std::string& dir,
   // Read in each line into a distributed set
   ygm::container::counting_set<std::string> line_set_to_test_for_all(comm);
   ygm::container::counting_set<std::string> line_set_to_test_iterators(comm);
+  size_t                                    line_count_for_all{0};
+  size_t                                    line_count_iterators{0};
   ygm::io::line_parser                      bfr(comm, {dir});
-  bfr.for_all([&line_set_to_test_for_all](const std::string& line) {
+  bfr.for_all([&line_set_to_test_for_all,
+               &line_count_for_all](const std::string& line) {
+    ++line_count_for_all;
     line_set_to_test_for_all.async_insert(line);
   });
 
   for (const auto& line : bfr) {
+    ++line_count_iterators;
     line_set_to_test_iterators.async_insert(line);
   }
 
   YGM_ASSERT_RELEASE(unique_line_count == line_set_to_test_for_all.size());
   YGM_ASSERT_RELEASE(unique_line_count == line_set_to_test_iterators.size());
+  YGM_ASSERT_RELEASE(line_count_for_all == line_count_iterators);
 }
