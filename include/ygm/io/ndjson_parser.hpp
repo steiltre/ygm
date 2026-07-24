@@ -63,6 +63,81 @@ class ndjson_parser : public ygm::container::detail::base_iteration_value<
   template <typename... Args>
   ndjson_parser(Args &&...args) : m_lp(std::forward<Args>(args)...) {}
 
+  class iterator {
+   public:
+    using iterator_category = std::input_iterator_tag;
+    using value_type        = boost::json::object;
+    using difference_type   = std::ptrdiff_t;
+    using pointer           = const boost::json::object *;
+    using reference         = const boost::json::object &;
+
+    iterator() = default;  // sentinel/end iterator
+
+    reference operator*() const { return m_impl->m_current_line; }
+    pointer   operator->() const { return &m_impl->m_current_line; }
+
+    iterator &operator++() {
+      m_impl->advance();
+      return *this;
+    }
+
+    iterator operator++(int) {
+      iterator tmp = *this;
+      ++(*this);
+      return tmp;
+    }
+
+    friend bool operator==(const iterator &a, const iterator &b) {
+      bool a_end = !a.m_impl || !a.m_impl->m_lp_iter.valid();
+      bool b_end = !b.m_impl || !b.m_impl->m_lp_iter.valid();
+      if (a_end || b_end) {
+        return a_end == b_end;
+      }
+      return a.m_impl->m_lp_iter == b.m_impl->m_lp_iter;
+    }
+
+    friend bool operator!=(const iterator &a, const iterator &b) {
+      return !(a == b);
+    }
+
+   private:
+    friend class ndjson_parser;
+
+    struct impl {
+      ygm::io::line_parser::iterator m_lp_iter;
+      boost::json::object            m_current_line;
+      bool                           m_valid_line;
+      ndjson_parser                 *p_parser{nullptr};
+
+      impl() : m_current_line() {};
+
+      // Advances to the next line from the underlying line_parser and parses it
+      // as a JSON line
+      void advance() {
+        do {
+          ++m_lp_iter;
+          try {
+            m_current_line = boost::json::parse(*m_lp_iter).as_object();
+            m_valid_line   = true;
+          } catch (...) {
+            m_valid_line = false;
+            // Count invalid line if line parser says line is valid but JSON
+            // parsing fails
+            if (m_lp_iter.valid()) {
+              p_parser->m_num_invalid_records++;
+            }
+          }
+        } while (not m_valid_line and m_lp_iter.valid());
+      }
+    };
+
+    explicit iterator(std::shared_ptr<impl> impl) : m_impl(std::move(impl)) {}
+
+    std::shared_ptr<impl> m_impl;
+  };
+
+  using const_iterator = iterator;
+
   /**
    * @brief Executes a user function for every CSV record in a set of files.
    *
@@ -71,13 +146,9 @@ class ndjson_parser : public ygm::container::detail::base_iteration_value<
    */
   template <typename Function>
   void for_all(Function fn) {
-    m_lp.for_all([fn, this](const std::string &line) {
-      try {
-        fn(boost::json::parse(line).as_object());
-      } catch (...) {
-        ++m_num_invalid_records;
-      }
-    });
+    for (const auto &jsonline : *this) {
+      fn(jsonline);
+    }
   }
 
   /*
@@ -94,6 +165,37 @@ class ndjson_parser : public ygm::container::detail::base_iteration_value<
    * @return YGM communicator used by parser
    */
   const ygm::comm &comm() const { return m_lp.comm(); }
+
+  /**
+   * @brief Returns an iterator to the first line of CSV assigned to this rank
+   */
+  iterator begin() {
+    m_num_invalid_records = 0;  // Reset to avoid over-reporting invalid lines
+                                // when reading multiple times
+
+    auto impl       = std::make_shared<iterator::impl>();
+    impl->m_lp_iter = m_lp.begin();
+    impl->p_parser  = this;
+
+    try {
+      impl->m_current_line = boost::json::parse(*(impl->m_lp_iter)).as_object();
+      impl->m_valid_line   = true;
+    } catch (...) {
+      impl->m_valid_line = false;
+      if (impl->m_lp_iter.valid()) {
+        ++m_num_invalid_records;
+      }
+    }
+    return iterator(impl);
+  }
+
+  /**
+   * @brief Returns a past-the-end sentinel iterator
+   */
+  iterator end() {
+    comm().barrier();
+    return iterator();
+  }
 
   /*
    * @brief Get a count of the number of invalid JSON lines encountered during
