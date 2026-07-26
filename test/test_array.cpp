@@ -608,6 +608,7 @@ int main(int argc, char **argv) {
 
     ygm::container::array<int> arr(world, b);
 
+    YGM_ASSERT_RELEASE(arr.size() == size_t(bag_size));
     arr.for_all([]([[maybe_unused]] const auto &index, const auto &value) {
       YGM_ASSERT_RELEASE(value == 1);
     });
@@ -786,7 +787,7 @@ int main(int argc, char **argv) {
 
   {
     std::string   saving_path = "/tmp/saved_array";
-    constexpr int size               = 1073;
+    constexpr int size        = 1073;
 
     //
     // Test saving

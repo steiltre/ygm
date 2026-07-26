@@ -79,9 +79,9 @@ class csv_line {
   using const_iterator         = vector_type::const_iterator;
   using reverse_iterator       = vector_type::reverse_iterator;
   using const_reverse_iterator = vector_type::const_reverse_iterator;
+  using header_map_type        = std::map<std::string, int>;
 
-  csv_line(const std::map<std::string, int> &header_map)
-      : m_header_map_ref(header_map) {};
+  csv_line(const header_map_type &header_map) : p_header_map(&header_map) {};
 
   void push_back(const csv_field &f) { m_csv_fields.push_back(f); }
 
@@ -92,7 +92,7 @@ class csv_line {
   const_reference operator[](size_type n) const { return m_csv_fields[n]; }
 
   const_reference operator[](const std::string &key) const {
-    return m_csv_fields[m_header_map_ref.at(key)];
+    return m_csv_fields[p_header_map->at(key)];
   }
 
   iterator               begin() { return m_csv_fields.begin(); }
@@ -109,8 +109,8 @@ class csv_line {
   const_reverse_iterator crend() const { return m_csv_fields.crend(); }
 
  private:
-  std::vector<csv_field>            m_csv_fields;
-  const std::map<std::string, int> &m_header_map_ref;
+  std::vector<csv_field> m_csv_fields;
+  const header_map_type *p_header_map;
 };
 
 inline std::ostream &operator<<(std::ostream &os, const csv_field &f) {
@@ -118,7 +118,7 @@ inline std::ostream &operator<<(std::ostream &os, const csv_field &f) {
 }
 
 inline csv_line parse_csv_line(
-    const std::string line, const std::map<std::string, int> &header_map_ref) {
+    const std::string line, const csv_line::header_map_type &header_map_ref) {
   csv_line line_fields(header_map_ref);
   if (line.empty() || line[0] == '#') {
     return line_fields;
@@ -142,9 +142,9 @@ inline csv_line parse_csv_line(
   return line_fields;
 }
 
-inline std::map<std::string, int> parse_csv_headers(
+inline csv_line::header_map_type parse_csv_headers(
     const std::string header_line) {
-  std::map<std::string, int> header_map;
+  csv_line::header_map_type header_map;
 
   std::stringstream ssline(header_line);
   int               column_num{0};
