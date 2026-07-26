@@ -570,11 +570,11 @@ int main(int argc, char** argv) {
   }
 
   {
-    std::string   serialization_path = "/tmp/serialized_set";
+    std::string   saving_path = "/tmp/saved_set";
     constexpr int size               = 1019;
 
     //
-    // Test serialization
+    // Test saving
     {
       ygm::container::set<std::string> sset(world);
 
@@ -585,15 +585,15 @@ int main(int argc, char** argv) {
       }
       world.barrier();
 
-      sset.serialize(serialization_path);
+      sset.save(saving_path);
     }
 
     //
-    // Test deserialization
+    // Test loading
     {
       ygm::container::set<std::string> sset(world);
 
-      sset.deserialize(serialization_path);
+      sset.load(saving_path);
 
       YGM_ASSERT_RELEASE(sset.size() == size);
 

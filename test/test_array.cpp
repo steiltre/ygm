@@ -785,11 +785,11 @@ int main(int argc, char **argv) {
   }
 
   {
-    std::string   serialization_path = "/tmp/serialized_array";
+    std::string   saving_path = "/tmp/saved_array";
     constexpr int size               = 1073;
 
     //
-    // Test serialization
+    // Test saving
     {
       ygm::container::array<std::pair<int, double>> arr(world, size);
 
@@ -801,15 +801,15 @@ int main(int argc, char **argv) {
 
       world.barrier();
 
-      arr.serialize(serialization_path);
+      arr.save(saving_path);
     }
 
     //
-    // Test deserialization
+    // Test loading
     {
       ygm::container::array<std::pair<int, double>> arr(world, size);
 
-      arr.deserialize(serialization_path);
+      arr.load(saving_path);
 
       YGM_ASSERT_RELEASE(arr.size() == size);
 

@@ -20,13 +20,13 @@
 
 namespace ygm::container::detail {
 
-namespace serialize_constants {
+namespace save_constants {
 constexpr int              manifest_version = 1;
 constexpr std::string_view data_filename_prefix{"data_rank"};
-};  // namespace serialize_constants
+};  // namespace save_constants
 
 template <typename derived_type, typename for_all_args>
-struct base_serialize;
+struct base_save_load;
 
 /*
 template <typename T>
@@ -36,101 +36,101 @@ concept HasExtendManifest = requires(const T& v) {
 */
 
 template <typename T>
-concept HasCustomSerialize = requires(T& v) {
-  v.custom_serialize(
+concept HasCustomSave = requires(T& v) {
+  v.custom_save(
       std::declval<std::filesystem::path>(),
       std::declval<
-          typename base_serialize<T, typename T::for_all_args>::manifest_t&>());
+          typename base_save_load<T, typename T::for_all_args>::manifest_t&>());
 };
 
 template <typename T>
-concept HasCustomDeserialize = requires(T& v) {
-  v.custom_deserialize(
+concept HasCustomLoad = requires(T& v) {
+  v.custom_load(
       std::declval<std::filesystem::path>(),
       std::declval<
-          typename base_serialize<T, typename T::for_all_args>::manifest_t&>());
+          typename base_save_load<T, typename T::for_all_args>::manifest_t&>());
 };
 
 template <typename T>
-concept HasSerializePrologue = requires(T& v) {
-  v.serialize_prologue(
+concept HasSavePrologue = requires(T& v) {
+  v.save_prologue(
 
       std::declval<std::filesystem::path>(),
       std::declval<
-          typename base_serialize<T, typename T::for_all_args>::manifest_t&>());
+          typename base_save_load<T, typename T::for_all_args>::manifest_t&>());
 };
 
 template <typename T>
-concept HasSerializeEpilogue = requires(T& v) {
-  v.serialize_epilogue(
+concept HasSaveEpilogue = requires(T& v) {
+  v.save_epilogue(
       std::declval<std::filesystem::path>(),
       std::declval<
-          typename base_serialize<T, typename T::for_all_args>::manifest_t&>());
+          typename base_save_load<T, typename T::for_all_args>::manifest_t&>());
 };
 
 template <typename T>
-concept HasDeserializePrologue = requires(T& v) {
-  v.deserialize_prologue(
+concept HasLoadPrologue = requires(T& v) {
+  v.load_prologue(
       std::declval<std::filesystem::path>(),
       std::declval<
-          typename base_serialize<T, typename T::for_all_args>::manifest_t&>());
+          typename base_save_load<T, typename T::for_all_args>::manifest_t&>());
 };
 
 template <typename T>
-concept HasDeserializeEpilogue = requires(T& v) {
-  v.deserialize_epilogue(
+concept HasLoadEpilogue = requires(T& v) {
+  v.load_epilogue(
       std::declval<std::filesystem::path>(),
       std::declval<
-          typename base_serialize<T, typename T::for_all_args>::manifest_t&>());
+          typename base_save_load<T, typename T::for_all_args>::manifest_t&>());
 };
 
 /**
- * @brief Curiously-recurring template pattern struct that provides serialize
- * and deserialize functions for containers
+ * @brief Curiously-recurring template pattern struct that provides save
+ * and load functions for containers
  */
 template <typename derived_type, typename for_all_args>
-struct base_serialize {
+struct base_save_load {
+ public:
   using manifest_t       = boost::json::object;
   using output_archive_t = cereal::BinaryOutputArchive;
   using input_archive_t  = cereal::BinaryInputArchive;
 
   /**
-   * @brief Function to serialize a container
+   * @brief Function to save a container
    *
-   * @param serialization_path Path to store serialized container
+   * @param save_path Path to store saved container
    *
-   * @details The serialization logic can be completely overwritten by providing
-   * a `custom_serialize()` method in the container class. When using the
-   * serialization operation provided in the CRTP class, the serialization steps
+   * @details The save logic can be completely overwritten by providing
+   * a `custom_save()` method in the container class. When using the
+   * save operation provided in the CRTP class, the save steps
    * are
    * 1. create the manifest object in memory
-   * 2. complete the `serialize_prologue(path, manifest)` function, if provided
-   * 3. serialize container data to files
-   * 4. complete the `serialize_epilogue(path, manifest)` function, if provided
-   * 5. write the manifest object from memory to a file alongside the serialized
+   * 2. complete the `save_prologue(path, manifest)` function, if provided
+   * 3. save container data to files
+   * 4. complete the `save_epilogue(path, manifest)` function, if provided
+   * 5. write the manifest object from memory to a file alongside the saved
    * data
    */
-  void serialize(std::filesystem::path serialization_path) {
+  void save(std::filesystem::path save_path) {
     derived_type* derived_this = static_cast<derived_type*>(this);
 
     derived_this->comm().barrier();
 
-    serialization_path /= "";  // Append directory separator if not present
-    ygm::utility::fs::make_directories(serialization_path);
+    save_path /= "";  // Append directory separator if not present
+    ygm::utility::fs::make_directories(save_path);
 
     manifest_t manifest_obj = create_manifest();
 
-    if constexpr (HasCustomSerialize<derived_type>) {
-      derived_this->custom_serialize(serialization_path, manifest_obj);
+    if constexpr (HasCustomSave<derived_type>) {
+      derived_this->custom_save(save_path, manifest_obj);
     } else {
-      if constexpr (HasSerializePrologue<derived_type>) {
-        derived_this->serialize_prologue(serialization_path, manifest_obj);
+      if constexpr (HasSavePrologue<derived_type>) {
+        derived_this->save_prologue(save_path, manifest_obj);
       }
 
       std::filesystem::path rank_path =
-          serialization_path /
-          (std::string(serialize_constants::data_filename_prefix) +
-           std::to_string(derived_this->comm().rank()));
+          save_path / (std::string(save_constants::data_filename_prefix) +
+                       std::to_string(derived_this->comm().rank()));
       std::ofstream ofs(rank_path);
       // cereal::PortableBinaryOutputArchive archive(ofs);
       output_archive_t archive(ofs);
@@ -145,70 +145,67 @@ struct base_serialize {
         }
       } else {
         derived_this->comm().cerr()
-            << "Unable loop over container to serialize" << std::endl;
+            << "Unable loop over container to save" << std::endl;
       }
 
       derived_this->comm().cf_barrier();
 
-      if constexpr (HasSerializeEpilogue<derived_type>) {
-        derived_this->serialize_epilogue(serialization_path, manifest_obj);
+      if constexpr (HasSaveEpilogue<derived_type>) {
+        derived_this->save_epilogue(save_path, manifest_obj);
       }
     }
 
-    write_manifest(serialization_path / "manifest.json", manifest_obj);
+    write_manifest(save_path / "manifest.json", manifest_obj);
   }
 
+ private:
   /**
-   * @brief Function to deserialize a container
+   * @brief Function to load a container
    *
-   * @param serialization_path Path to serialized container
+   * @param save_path Path to saved container
    * @param check_types Optional bool indicating whether types should be checked
-   * before deserialization. Defaults to true.
+   * before desave. Defaults to true.
    *
-   * @details The deserialization logic can be completely overwritten by
-   * providing a `custom_deserialize()` method in the container class. When
-   * using the deserialization operation provided in the CRTP class, the
-   * deserialization steps are:
+   * @details The desave logic can be completely overwritten by
+   * providing a `custom_load()` method in the container class. When
+   * using the desave operation provided in the CRTP class, the
+   * desave steps are:
    * 1. Read the manifest for the container
    * 2. Check the types (if check_types == true)
-   * 3. complete the `deserialize_prologue(path, manifest)` function, if
+   * 3. complete the `load_prologue(path, manifest)` function, if
    * provided
-   * 4. deserialize from files to container
-   * 5. complete the `deserialize_epilogue(path, manifest)` function, if
+   * 4. load from files to container
+   * 5. complete the `load_epilogue(path, manifest)` function, if
    * provided The ability to run without checking types is provided for cases
    * when the typeid for the stored data does not agree with that stored in the
-   * manifest. This can occur, for instance, if the serialization and
-   * deserialization executables contain the same class that gets serialized,
+   * manifest. This can occur, for instance, if the save and
+   * desave executables contain the same class that gets saved,
    * but with each having unique names. This is mainly included as a potential
-   * option that can give access to otherwise inaccessible serialized data.
+   * option that can give access to otherwise inaccessible saved data.
    */
-  void deserialize(std::filesystem::path serialization_path,
-                   bool                  check_types = true) {
+  void load(std::filesystem::path save_path, bool check_types = true) {
     derived_type* derived_this = static_cast<derived_type*>(this);
 
-    serialization_path /= "";
-    manifest_t manifest_obj =
-        read_manifest(serialization_path / "manifest.json");
+    save_path /= "";
+    manifest_t manifest_obj = read_manifest(save_path / "manifest.json");
 
     if (check_types) {
-      check_serialized_types(manifest_obj);
+      check_saved_types(manifest_obj);
     }
 
-    if constexpr (HasCustomDeserialize<derived_type>) {
-      derived_this->custom_serialize(serialization_path, manifest_obj);
+    if constexpr (HasCustomLoad<derived_type>) {
+      derived_this->custom_save(save_path, manifest_obj);
     } else {
-      if constexpr (HasDeserializePrologue<derived_type>) {
-        derived_this->deserialize_prologue(serialization_path, manifest_obj);
+      if constexpr (HasLoadPrologue<derived_type>) {
+        derived_this->load_prologue(save_path, manifest_obj);
       }
 
-      std::vector<int> local_read_rank_ids =
-          assign_serialized_rank_files(serialization_path);
+      std::vector<int> local_read_rank_ids = assign_saved_rank_files(save_path);
 
       for (const int rank_id : local_read_rank_ids) {
         std::filesystem::path rank_path =
-            serialization_path /
-            (std::string(serialize_constants::data_filename_prefix) +
-             std::to_string(rank_id));
+            save_path / (std::string(save_constants::data_filename_prefix) +
+                         std::to_string(rank_id));
         std::ifstream   ifs(rank_path, std::ios::binary);
         input_archive_t archive(ifs);
 
@@ -223,8 +220,8 @@ struct base_serialize {
             typename std::tuple_element<0, for_all_args>::type val;
             archive(val);
 
-            // Only use local_insert if local_insert if serialization and
-            // deserialization communicator configurations match and the
+            // Only use local_insert if local_insert if save and
+            // desave communicator configurations match and the
             // container derives from base_async_insert (implying the existence
             // of local_insert);
             if constexpr (std::is_base_of_v<
@@ -260,8 +257,8 @@ struct base_serialize {
         }
       }
 
-      if constexpr (HasDeserializeEpilogue<derived_type>) {
-        derived_this->deserialize_epilogue(serialization_path, manifest_obj);
+      if constexpr (HasLoadEpilogue<derived_type>) {
+        derived_this->load_epilogue(save_path, manifest_obj);
       }
     }
 
@@ -269,15 +266,15 @@ struct base_serialize {
   }
 
   /**
-   * @brief Create a manifest of basic information about a serialized container
-   * for writing to a file alongside serialized data. Containers can update the
-   * manifest through a serialization prologue and epilogue methods.
+   * @brief Create a manifest of basic information about a saved container
+   * for writing to a file alongside saved data. Containers can update the
+   * manifest through a save prologue and epilogue methods.
    */
   manifest_t create_manifest() {
     derived_type* derived_this = static_cast<derived_type*>(this);
 
     manifest_t manifest_obj{};
-    manifest_obj["version"]   = serialize_constants::manifest_version;
+    manifest_obj["version"]   = save_constants::manifest_version;
     manifest_obj["comm_size"] = derived_this->comm().size();
     manifest_obj["container_type"] =
         typeid(typename derived_type::container_type).name();
@@ -301,7 +298,7 @@ struct base_serialize {
 
   /**
    * @brief Write a manifest file that contains basic information about
-   * serialized container. Containers can update the manifest before it is
+   * saved container. Containers can update the manifest before it is
    * written.
    *
    * @param manifest_path Path for manifest file
@@ -320,7 +317,7 @@ struct base_serialize {
 
   /**
    * @brief Read the manifest file with basic information created when
-   * serializing a container. Container class can check additional
+   * saving a container. Container class can check additional
    * container-specific info added to the manifest.
    *
    * @param path Path to manifest file
@@ -347,13 +344,13 @@ struct base_serialize {
   }
 
   /**
-   * @brief Check that serialized types are the same as those in the container
-   * being deserialized into
+   * @brief Check that saved types are the same as those in the container
+   * being loadd into
    *
-   * @param manifest_obj Manifest with information about types at serialization
+   * @param manifest_obj Manifest with information about types at save
    * time
    */
-  void check_serialized_types(const manifest_t& manifest_obj) {
+  void check_saved_types(const manifest_t& manifest_obj) {
     if constexpr (SingleItemTuple<for_all_args>) {
       YGM_ASSERT_RELEASE(typeid(typename derived_type::value_type).name() ==
                          manifest_obj.at("value_type"));
@@ -364,20 +361,20 @@ struct base_serialize {
                          manifest_obj.at("mapped_type"));
     }
 
-    // Check tag of container used during serialization
+    // Check tag of container used during save
     YGM_ASSERT_RELEASE(typeid(typename derived_type::container_type).name() ==
                        manifest_obj.at("container_type"));
   }
 
   /**
-   * @brief Assign serialized data files to ranks for reading
+   * @brief Assign saved data files to ranks for reading
    *
-   * @param serialization_path Path to directory of serialized data files
+   * @param save_path Path to directory of saved data files
    * @return local_read_rank_ids A vector of rank IDs representing the data
-   * files for the local rank to open and deserialize
+   * files for the local rank to open and load
    */
-  std::vector<int> assign_serialized_rank_files(
-      const std::filesystem::path& serialization_path) {
+  std::vector<int> assign_saved_rank_files(
+      const std::filesystem::path& save_path) {
     derived_type*    derived_this = static_cast<derived_type*>(this);
     std::vector<int> local_read_rank_ids;
 
@@ -387,14 +384,13 @@ struct base_serialize {
 
     if (c.rank0()) {
       for (const auto& dir_entry :
-           std::filesystem::directory_iterator(serialization_path)) {
+           std::filesystem::directory_iterator(save_path)) {
         auto filename = std::filesystem::path(dir_entry).filename();
-        auto pos =
-            filename.string().find(serialize_constants::data_filename_prefix);
+        auto pos = filename.string().find(save_constants::data_filename_prefix);
         if (pos != std::string::npos) {
           std::string filename_str = filename.string();
           int         rank         = std::stoi(filename_str.substr(
-              pos + serialize_constants::data_filename_prefix.size()));
+              pos + save_constants::data_filename_prefix.size()));
 
           int dest = rank % c.size();
           c.async(

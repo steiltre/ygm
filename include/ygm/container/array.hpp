@@ -17,7 +17,7 @@
 #include <ygm/container/detail/base_iteration.hpp>
 #include <ygm/container/detail/base_iterators.hpp>
 #include <ygm/container/detail/base_misc.hpp>
-#include <ygm/container/detail/base_serialize.hpp>
+#include <ygm/container/detail/base_save_load.hpp>
 #include <ygm/container/detail/block_partitioner.hpp>
 
 namespace ygm::container {
@@ -43,11 +43,11 @@ class array
                                               std::tuple<Index, Value>>,
       public detail::base_async_reduce<array<Value, Index>,
                                        std::tuple<Index, Value>>,
-      public detail::base_serialize<array<Value, Index>,
+      public detail::base_save_load<array<Value, Index>,
                                     std::tuple<Index, Value>> {
   friend struct detail::base_misc<array<Value, Index>,
                                   std::tuple<Index, Value>>;
-  friend struct detail::base_serialize<array<Value, Index>,
+  friend struct detail::base_save_load<array<Value, Index>,
                                        std::tuple<Index, Value>>;
 
  public:
@@ -1017,12 +1017,12 @@ class array
  private:
   void serialize_prologue(
       [[maybe_unused]] const std::filesystem::path& serialization_path,
-      [[maybe_unused]] detail::base_serialize<
+      [[maybe_unused]] detail::base_save_load<
           self_type, for_all_args>::manifest_t& manifest_obj) {}
 
   void deserialize_prologue(
       [[maybe_unused]] const std::filesystem::path& serialization_path,
-      [[maybe_unused]] detail::base_serialize<
+      [[maybe_unused]] detail::base_save_load<
           self_type, for_all_args>::manifest_t& manifest_obj) {
     boost::json::value jv = manifest_obj["size"];
     resize(jv.to_number<uint64_t>());

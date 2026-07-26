@@ -17,7 +17,7 @@
 #include <ygm/container/detail/base_iteration.hpp>
 #include <ygm/container/detail/base_iterators.hpp>
 #include <ygm/container/detail/base_misc.hpp>
-#include <ygm/container/detail/base_serialize.hpp>
+#include <ygm/container/detail/base_save_load.hpp>
 #include <ygm/container/detail/hash_partitioner.hpp>
 
 namespace ygm::container {
@@ -34,7 +34,7 @@ class set
       public detail::base_misc<set<Value>, std::tuple<Value>>,
       public detail::base_iterators<set<Value>>,
       public detail::base_iteration_value<set<Value>, std::tuple<Value>>,
-      public detail::base_serialize<set<Value>, std::tuple<Value>> {
+      public detail::base_save_load<set<Value>, std::tuple<Value>> {
   friend struct detail::base_misc<set<Value>, std::tuple<Value>>;
 
   using local_container_type =

@@ -700,11 +700,11 @@ int main(int argc, char **argv) {
   }
 
   {
-    std::string   serialization_path = "/tmp/serialized_map";
+    std::string   saving_path = "/tmp/saved_map";
     constexpr int size               = 879;
 
     //
-    // Test serialization
+    // Test saving
     {
       ygm::container::map<std::string, std::pair<int, double>> smap(world);
 
@@ -716,15 +716,15 @@ int main(int argc, char **argv) {
 
       world.barrier();
 
-      smap.serialize(serialization_path);
+      smap.save(saving_path);
     }
 
     //
-    // Test deserialization
+    // Test loading
     {
       ygm::container::map<std::string, std::pair<int, double>> smap(world);
 
-      smap.deserialize(serialization_path);
+      smap.load(saving_path);
 
       YGM_ASSERT_RELEASE(smap.size() == size);
 

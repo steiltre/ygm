@@ -17,7 +17,7 @@
 #include <ygm/container/detail/base_iteration.hpp>
 #include <ygm/container/detail/base_iterators.hpp>
 #include <ygm/container/detail/base_misc.hpp>
-#include <ygm/container/detail/base_serialize.hpp>
+#include <ygm/container/detail/base_save_load.hpp>
 #include <ygm/container/detail/round_robin_partitioner.hpp>
 #include <ygm/random/random.hpp>
 
@@ -35,7 +35,7 @@ class bag : public detail::base_async_insert_value<bag<Item>, std::tuple<Item>>,
             public detail::base_misc<bag<Item>, std::tuple<Item>>,
             public detail::base_iterators<bag<Item>>,
             public detail::base_iteration_value<bag<Item>, std::tuple<Item>>,
-            public detail::base_serialize<bag<Item>, std::tuple<Item>> {
+            public detail::base_save_load<bag<Item>, std::tuple<Item>> {
   friend struct detail::base_misc<bag<Item>, std::tuple<Item>>;
 
   using block_32k_option_t = boost::container::deque_options<

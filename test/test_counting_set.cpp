@@ -393,9 +393,9 @@ int main(int argc, char **argv) {
   }
 
   {
-    std::string serialization_path = "/tmp/serialized_counting_set";
+    std::string saving_path = "/tmp/saved_counting_set";
 
-    // Test serialize
+    // Test save
     {
       ygm::container::counting_set<std::string> cset(world);
 
@@ -421,13 +421,13 @@ int main(int argc, char **argv) {
       YGM_ASSERT_RELEASE(cset.contains("red"));
       YGM_ASSERT_RELEASE(!cset.contains("blue"));
 
-      cset.serialize(serialization_path);
+      cset.save(saving_path);
     }
-    // Test deserialize
+    // Test load
     {
       ygm::container::counting_set<std::string> cset(world);
 
-      cset.deserialize(serialization_path);
+      cset.load(saving_path);
 
       YGM_ASSERT_RELEASE(cset.count("dog") == (size_t)world.size());
       YGM_ASSERT_RELEASE(cset.count("apple") == (size_t)world.size());

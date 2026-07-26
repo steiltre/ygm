@@ -398,11 +398,11 @@ int main(int argc, char** argv) {
   }
 
   {
-    std::string   serialization_path = "/tmp/serialized_bag";
+    std::string   saving_path = "/tmp/saved_bag";
     constexpr int size               = 987;
 
     //
-    // Test serialization
+    // Test saving
     {
       ygm::container::bag<std::string> sbag(world);
 
@@ -413,15 +413,15 @@ int main(int argc, char** argv) {
       }
       world.barrier();
 
-      sbag.serialize(serialization_path);
+      sbag.save(saving_path);
     }
 
     //
-    // Test deserialization
+    // Test loading
     {
       ygm::container::bag<std::string> sbag(world);
 
-      sbag.deserialize(serialization_path);
+      sbag.load(saving_path);
 
       YGM_ASSERT_RELEASE(sbag.size() == size);
 
