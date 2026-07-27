@@ -110,6 +110,25 @@ class set
     m_comm.barrier();
   }
 
+  /**
+   * @brief Construct set from set saved to disk
+   *
+   * @param comm Communicator to use for communication
+   * @param save_path Path to saved data
+   * @param check_types Whether or not to check manifest type information before
+   * loading into container (default: true)
+   */
+  set(ygm::comm &comm, [[maybe_unused]] from_saved_tag_t f,
+      const std::filesystem::path &save_path, bool check_types = true)
+      : m_comm(comm),
+        pthis(this, ygm::max(ptr_type::next_index(), comm)),
+        partitioner(comm) {
+    m_comm.log(log_level::info,
+               "Creating ygm::container::set from saved files at " +
+                   save_path.string());
+    this->load(save_path, check_types);
+  }
+
   ~set() {
     m_comm.log(log_level::info, "Destroying ygm::container::set");
     m_comm.barrier();

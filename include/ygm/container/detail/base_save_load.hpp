@@ -18,7 +18,31 @@
 #include <ygm/utility/boost_json.hpp>
 #include <ygm/utility/filesystem.hpp>
 
-namespace ygm::container::detail {
+namespace ygm::container {
+
+/*
+ * @brief Tag for use in constructors to signify data is coming from saved files
+ */
+struct from_saved_tag_t {};
+static from_saved_tag_t from_saved_tag;
+
+/**
+ * @brief Returns a container from saved container data
+ *
+ * @param save_path Path to saved container
+ * @param check_types Flag indicating whether types should be checked before
+ * loading from files (default: true)
+ * @return ygm::container containing saved data
+ */
+template <typename T>
+T from_saved(ygm::comm& comm, const std::filesystem::path& save_path,
+             bool check_types = true) {
+  T to_return(comm, ygm::container::from_saved_tag, save_path, check_types);
+
+  return to_return;
+}
+
+namespace detail {
 
 namespace save_constants {
 constexpr int              manifest_version = 1;
@@ -95,6 +119,10 @@ struct base_save_load {
   using output_archive_t = cereal::BinaryOutputArchive;
   using input_archive_t  = cereal::BinaryInputArchive;
 
+  // Allow friend access for from_saved function to be able to call load
+  friend derived_type ygm::container::from_saved<derived_type>(
+      ygm::comm&, const std::filesystem::path&, bool check_types);
+
   /**
    * @brief Function to save a container
    *
@@ -158,7 +186,7 @@ struct base_save_load {
     write_manifest(save_path / "manifest.json", manifest_obj);
   }
 
- private:
+ protected:
   /**
    * @brief Function to load a container
    *
@@ -408,4 +436,6 @@ struct base_save_load {
     return local_read_rank_ids;
   }
 };
-}  // namespace ygm::container::detail
+}  // namespace detail
+
+}  // namespace ygm::container

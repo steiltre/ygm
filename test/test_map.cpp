@@ -701,7 +701,7 @@ int main(int argc, char **argv) {
 
   {
     std::string   saving_path = "/tmp/saved_map";
-    constexpr int size               = 879;
+    constexpr int size        = 879;
 
     //
     // Test saving
@@ -722,9 +722,20 @@ int main(int argc, char **argv) {
     //
     // Test loading
     {
-      ygm::container::map<std::string, std::pair<int, double>> smap(world);
+      ygm::container::map<std::string, std::pair<int, double>> smap(
+          world, ygm::container::from_saved_tag, saving_path);
 
-      smap.load(saving_path);
+      YGM_ASSERT_RELEASE(smap.size() == size);
+
+      for (const auto &[key, val_pair] : smap) {
+        YGM_ASSERT_RELEASE(val_pair.first == 2 * std::stoi(key));
+        YGM_ASSERT_RELEASE(val_pair.second == 3.14);
+      }
+    }
+    {
+      auto smap = ygm::container::from_saved<
+          ygm::container::map<std::string, std::pair<int, double>>>(
+          world, saving_path);
 
       YGM_ASSERT_RELEASE(smap.size() == size);
 

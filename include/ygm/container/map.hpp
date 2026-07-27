@@ -138,6 +138,25 @@ class map
     m_comm.barrier();
   }
 
+  /**
+   * @brief Construct map from map saved to disk
+   *
+   * @param comm Communicator to use for communication
+   * @param save_path Path to saved data
+   * @param check_types Whether or not to check manifest type information before
+   * loading into container (default: true)
+   */
+  map(ygm::comm& comm, [[maybe_unused]] from_saved_tag_t f,
+      const std::filesystem::path& save_path, bool check_types = true)
+      : m_comm(comm),
+        pthis(this, ygm::max(ptr_type::next_index(), comm)),
+        partitioner(comm) {
+    m_comm.log(log_level::info,
+               "Creating ygm::container::map from saved files at " +
+                   save_path.string());
+    this->load(save_path, check_types);
+  }
+
   ~map() {
     m_comm.log(log_level::info, "Destroying ygm::container::map");
     m_comm.barrier();
@@ -614,5 +633,5 @@ class map
 
  public:
   detail::hash_partitioner<detail::hash<key_type>> partitioner;
-};
+};  // namespace ygm::container
 }  // namespace ygm::container

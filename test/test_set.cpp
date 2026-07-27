@@ -570,8 +570,8 @@ int main(int argc, char** argv) {
   }
 
   {
-    std::string   saving_path = "/tmp/saved_set";
-    constexpr int size               = 1019;
+    std::filesystem::path saving_path = "/tmp/saved_set";
+    constexpr int         size        = 1019;
 
     //
     // Test saving
@@ -591,9 +591,8 @@ int main(int argc, char** argv) {
     //
     // Test loading
     {
-      ygm::container::set<std::string> sset(world);
-
-      sset.load(saving_path);
+      auto sset = ygm::container::from_saved<ygm::container::set<std::string>>(
+          world, saving_path);
 
       YGM_ASSERT_RELEASE(sset.size() == size);
 

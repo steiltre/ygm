@@ -321,6 +321,25 @@ class array
     m_comm.barrier();
   }
 
+  /**
+   * @brief Construct array from array saved to disk
+   *
+   * @param comm Communicator to use for communication
+   * @param save_path Path to saved data
+   * @param check_types Whether or not to check manifest type information before
+   * loading into container (default: true)
+   */
+  array(ygm::comm& comm, [[maybe_unused]] from_saved_tag_t f,
+        const std::filesystem::path& save_path, bool check_types = true)
+      : m_comm(comm),
+        pthis(this, ygm::max(ptr_type::next_index(), comm)),
+        partitioner(comm, 0) {
+    m_comm.log(log_level::info,
+               "Creating ygm::container::array from saved files at " +
+                   save_path.string());
+    this->load(save_path, check_types);
+  }
+
   ~array() {
     m_comm.barrier();
     m_comm.log(log_level::info, "Destroying ygm::container::array");
@@ -895,12 +914,12 @@ class array
   }
 
  private:
-  void serialize_prologue(
+  void save_prologue(
       [[maybe_unused]] const std::filesystem::path& serialization_path,
       [[maybe_unused]] detail::base_save_load<
           self_type, for_all_args>::manifest_t& manifest_obj) {}
 
-  void deserialize_prologue(
+  void load_prologue(
       [[maybe_unused]] const std::filesystem::path& serialization_path,
       [[maybe_unused]] detail::base_save_load<
           self_type, for_all_args>::manifest_t& manifest_obj) {

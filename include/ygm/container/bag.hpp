@@ -110,6 +110,25 @@ class bag : public detail::base_async_insert_value<bag<Item>, std::tuple<Item>>,
     m_comm.barrier();
   }
 
+  /**
+   * @brief Construct bag from bag saved to disk
+   *
+   * @param comm Communicator to use for communication
+   * @param save_path Path to saved data
+   * @param check_types Whether or not to check manifest type information before
+   * loading into container (default: true)
+   */
+  bag(ygm::comm &comm, [[maybe_unused]] from_saved_tag_t f,
+      const std::filesystem::path &save_path, bool check_types = true)
+      : m_comm(comm),
+        pthis(this, ygm::max(ptr_type::next_index(), comm)),
+        partitioner(comm) {
+    m_comm.log(log_level::info,
+               "Creating ygm::container::bag from saved files at " +
+                   save_path.string());
+    this->load(save_path, check_types);
+  }
+
   ~bag() {
     m_comm.log(log_level::info, "Destroying ygm::container::bag");
     m_comm.barrier();

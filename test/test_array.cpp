@@ -808,9 +808,19 @@ int main(int argc, char **argv) {
     //
     // Test loading
     {
-      ygm::container::array<std::pair<int, double>> arr(world, size);
+      ygm::container::array<std::pair<int, double>> arr(
+          world, ygm::container::from_saved_tag, saving_path);
 
-      arr.load(saving_path);
+      YGM_ASSERT_RELEASE(arr.size() == size);
+
+      for (const auto &[key, val_pair] : arr) {
+        YGM_ASSERT_RELEASE((uint32_t)val_pair.first == 2 * key);
+        YGM_ASSERT_RELEASE(val_pair.second == 3.14);
+      }
+    }
+    {
+      auto arr = ygm::container::from_saved<
+          ygm::container::array<std::pair<int, double>>>(world, saving_path);
 
       YGM_ASSERT_RELEASE(arr.size() == size);
 

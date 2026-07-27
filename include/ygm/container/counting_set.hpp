@@ -119,6 +119,26 @@ class counting_set
     m_comm.barrier();
   }
 
+  /**
+   * @brief Construct counting_set from counting_set saved to disk
+   *
+   * @param comm Communicator to use for communication
+   * @param save_path Path to saved data
+   * @param check_types Whether or not to check manifest type information before
+   * loading into container (default: true)
+   */
+  counting_set(ygm::comm &comm, [[maybe_unused]] from_saved_tag_t f,
+               const std::filesystem::path &save_path, bool check_types = true)
+      : m_comm(comm),
+        pthis(this, ygm::max(ptr_type::next_index(), comm)),
+        m_map(comm),
+        partitioner(m_map.partitioner) {
+    m_comm.log(log_level::info,
+               "Creating ygm::container::counting_set from saved files at " +
+                   save_path.string());
+    this->load(save_path, check_types);
+  }
+
   ~counting_set() {
     m_comm.barrier();
     m_comm.log(log_level::info, "Destroying ygm::container::counting_set");

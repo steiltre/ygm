@@ -399,7 +399,7 @@ int main(int argc, char** argv) {
 
   {
     std::string   saving_path = "/tmp/saved_bag";
-    constexpr int size               = 987;
+    constexpr int size        = 987;
 
     //
     // Test saving
@@ -419,9 +419,19 @@ int main(int argc, char** argv) {
     //
     // Test loading
     {
-      ygm::container::bag<std::string> sbag(world);
+      ygm::container::bag<std::string> sbag(
+          world, ygm::container::from_saved_tag, saving_path);
 
-      sbag.load(saving_path);
+      YGM_ASSERT_RELEASE(sbag.size() == size);
+
+      for (const auto& s : sbag) {
+        YGM_ASSERT_RELEASE(std::stoi(s) >= 0);
+        YGM_ASSERT_RELEASE(std::stoi(s) < size);
+      }
+    }
+    {
+      auto sbag = ygm::container::from_saved<ygm::container::bag<std::string>>(
+          world, saving_path);
 
       YGM_ASSERT_RELEASE(sbag.size() == size);
 
