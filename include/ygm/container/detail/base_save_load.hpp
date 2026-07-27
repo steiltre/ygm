@@ -37,7 +37,7 @@ static from_saved_tag_t from_saved_tag;
 template <typename T>
 T from_saved(ygm::comm& comm, const std::filesystem::path& save_path,
              bool check_types = true) {
-  T to_return(comm, ygm::container::from_saved_tag, save_path, check_types);
+  T to_return(ygm::container::from_saved_tag, comm, save_path, check_types);
 
   return to_return;
 }

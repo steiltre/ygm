@@ -419,8 +419,8 @@ int main(int argc, char** argv) {
     //
     // Test loading
     {
-      ygm::container::bag<std::string> sbag(
-          world, ygm::container::from_saved_tag, saving_path);
+      ygm::container::bag<std::string> sbag(ygm::container::from_saved_tag,
+                                            world, saving_path);
 
       YGM_ASSERT_RELEASE(sbag.size() == size);
 

@@ -119,7 +119,7 @@ class set
    * @param check_types Whether or not to check manifest type information before
    * loading into container (default: true)
    */
-  set(ygm::comm &comm, [[maybe_unused]] from_saved_tag_t f,
+  set([[maybe_unused]] from_saved_tag_t f, ygm::comm &comm,
       const std::filesystem::path &save_path, bool check_types = true)
       : m_comm(comm),
         pthis(this, ygm::max(ptr_type::next_index(), comm)),

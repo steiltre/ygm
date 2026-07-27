@@ -809,7 +809,7 @@ int main(int argc, char **argv) {
     // Test loading
     {
       ygm::container::array<std::pair<int, double>> arr(
-          world, ygm::container::from_saved_tag, saving_path);
+          ygm::container::from_saved_tag, world, saving_path);
 
       YGM_ASSERT_RELEASE(arr.size() == size);
 

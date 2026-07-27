@@ -591,6 +591,20 @@ int main(int argc, char** argv) {
     //
     // Test loading
     {
+      ygm::container::set<std::string> sset(ygm::container::from_saved_tag,
+                                            world, saving_path);
+
+      YGM_ASSERT_RELEASE(sset.size() == size);
+
+      std::vector<std::string> to_gather;
+      for (int i = 0; i < size; ++i) {
+        to_gather.push_back(std::to_string(i));
+      }
+
+      std::set<std::string> gathered_strings = sset.gather_values(to_gather);
+      YGM_ASSERT_RELEASE(gathered_strings.size() == size);
+    }
+    {
       auto sset = ygm::container::from_saved<ygm::container::set<std::string>>(
           world, saving_path);
 

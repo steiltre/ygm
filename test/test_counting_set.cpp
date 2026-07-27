@@ -425,7 +425,7 @@ int main(int argc, char **argv) {
     // Test load
     {
       ygm::container::counting_set<std::string> cset(
-          world, ygm::container::from_saved_tag, saving_path);
+          ygm::container::from_saved_tag, world, saving_path);
 
       YGM_ASSERT_RELEASE(cset.count("apple") == (size_t)world.size());
       YGM_ASSERT_RELEASE(cset.count("red") == (size_t)world.size());
