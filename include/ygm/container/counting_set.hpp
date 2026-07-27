@@ -40,6 +40,8 @@ class counting_set
                                     std::tuple<Key, CountValue>> {
   friend struct detail::base_misc<counting_set<Key, CountValue>,
                                   std::tuple<Key, CountValue>>;
+  friend struct detail::base_save_load<counting_set<Key>,
+                                       std::tuple<Key, CountValue>>;
 
   using internal_container_type = map<Key, CountValue>;
 
@@ -488,6 +490,12 @@ class counting_set
       m_count_cache[i].second = -1;
     }
     m_cache_empty = true;
+  }
+
+  void load_prologue([[maybe_unused]] const std::filesystem::path &save_path,
+                     [[maybe_unused]] detail::base_save_load<
+                         self_type, for_all_args>::manifest_t &manifest_obj) {
+    m_count_cache.resize(count_cache_size, {key_type(), -1});
   }
 
   ygm::comm                           &m_comm;

@@ -48,6 +48,7 @@ class map
                                               std::tuple<Key, Value>>,
       public detail::base_save_load<map<Key, Value>, std::tuple<Key, Value>> {
   friend struct detail::base_misc<map<Key, Value>, std::tuple<Key, Value>>;
+  friend struct detail::base_save_load<map<Key, Value>, std::tuple<Key, Value>>;
 
   using local_container_type =
       boost::unordered::unordered_flat_map<Key, Value, detail::hash<Key>>;

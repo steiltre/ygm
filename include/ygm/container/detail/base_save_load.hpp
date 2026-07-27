@@ -173,7 +173,7 @@ struct base_save_load {
         }
       } else {
         derived_this->comm().cerr()
-            << "Unable loop over container to save" << std::endl;
+            << "Unable to loop over container to save" << std::endl;
       }
 
       derived_this->comm().cf_barrier();
@@ -248,8 +248,8 @@ struct base_save_load {
             typename std::tuple_element<0, for_all_args>::type val;
             archive(val);
 
-            // Only use local_insert if local_insert if save and
-            // desave communicator configurations match and the
+            // Only use local_insert if save and
+            // load communicator configurations match and the
             // container derives from base_async_insert (implying the existence
             // of local_insert);
             if constexpr (std::is_base_of_v<

@@ -36,6 +36,7 @@ class set
       public detail::base_iteration_value<set<Value>, std::tuple<Value>>,
       public detail::base_save_load<set<Value>, std::tuple<Value>> {
   friend struct detail::base_misc<set<Value>, std::tuple<Value>>;
+  friend struct detail::base_save_load<set<Value>, std::tuple<Value>>;
 
   using local_container_type =
       boost::unordered::unordered_flat_set<Value, detail::hash<Value>>;

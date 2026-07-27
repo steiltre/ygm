@@ -914,15 +914,13 @@ class array
   }
 
  private:
-  void save_prologue(
-      [[maybe_unused]] const std::filesystem::path& serialization_path,
-      [[maybe_unused]] detail::base_save_load<
-          self_type, for_all_args>::manifest_t& manifest_obj) {}
+  void save_prologue([[maybe_unused]] const std::filesystem::path& save_path,
+                     [[maybe_unused]] detail::base_save_load<
+                         self_type, for_all_args>::manifest_t& manifest_obj) {}
 
-  void load_prologue(
-      [[maybe_unused]] const std::filesystem::path& serialization_path,
-      [[maybe_unused]] detail::base_save_load<
-          self_type, for_all_args>::manifest_t& manifest_obj) {
+  void load_prologue([[maybe_unused]] const std::filesystem::path& save_path,
+                     [[maybe_unused]] detail::base_save_load<
+                         self_type, for_all_args>::manifest_t& manifest_obj) {
     boost::json::value jv = manifest_obj["size"];
     resize(jv.to_number<uint64_t>());
   }
