@@ -5,5 +5,4 @@
 gcc-build:
   extends: .job_on_dane
   variables:
-    COMPILER: "gcc"
-    COMPILER_VERSION: "12.1.1"
+    COMPILER: "gcc/12.1.1"
