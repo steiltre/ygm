@@ -54,7 +54,7 @@ variables:
 
   # Build command (use your actual script path)
   JOB_CMD:
-    value: "./scripts/build-and-test.sh"
+    value: "./scripts/build_and_test.sh"
     expand: false
 
   # Optional: Service user
